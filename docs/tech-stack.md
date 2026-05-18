@@ -2,7 +2,7 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.1
+Version: 0.2
 Source: cross-doc decisions from [erd.md](erd.md), [api-design.md](api-design.md), [mvp-stories.md](mvp-stories.md), [permission-matrix.md](permission-matrix.md), [ux-flows.md](ux-flows.md)
 
 ---
@@ -148,6 +148,40 @@ Source: cross-doc decisions from [erd.md](erd.md), [api-design.md](api-design.md
 - Pakai empty state component dengan primary action + helper text.
 - Inline tooltip pakai shadcn/ui `Tooltip` di area awal.
 - Defer interactive walkthrough ke V2.
+
+### 3.3 Domain & SEO — Custom Domain Mandatory
+
+**Default Vercel domain `*.vercel.app` di-noindex** by Vercel — Google tidak akan crawl/index. Custom domain wajib untuk SEO + branding.
+
+**Sebelum launch**:
+- Beli domain (recommend: Cloudflare Registrar at-cost, Namecheap, atau Porkbun)
+- TLD priority: `.com` > `.id`/`.co.id` (kalau target Indonesia) > `.app`
+- Hindari TLD spammy: `.xyz`, `.online`
+
+**SEO baseline (Next.js + Vercel native)**:
+- SSR/SSG/ISR App Router → crawler dapat HTML lengkap
+- `metadata` API per route (title, description, OG, Twitter)
+- `sitemap.ts` + `robots.ts` native
+- OG image dynamic via `opengraph-image.tsx`
+- `next/image` + `next/font` (LCP + CLS optimal)
+- Edge runtime <100ms TTFB global
+- Speed Insights track Core Web Vitals
+
+**Indexable pages**:
+- ✅ `/` (landing), `/pricing`, `/help`, `/blog/*` (kalau ada)
+- ❌ `/app/*` (auth-required, noindex)
+- ❌ `/public/*` (privacy, robots.txt deny, `X-Robots-Tag: noindex`)
+- ❌ `/login`, `/register`, `/verify-*` (no SEO value)
+
+**Setup flow saat launch**:
+1. Beli domain
+2. Vercel Settings → Domains → Add → ikuti DNS instruction
+3. Update env: `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`
+4. Resend domain verify (DKIM/SPF/DMARC) — pakai subdomain `mail.example.com` atau apex
+5. Google Search Console verify + submit sitemap
+6. Bing Webmaster Tools (bonus traffic source)
+
+**Email subdomain plan**: jangan kirim email dari root domain. Pakai `mail.example.com` atau `send.example.com` supaya kalau reputation jelek tidak nodain reputation domain utama.
 
 ---
 
@@ -417,4 +451,5 @@ Pantau via Sentry Performance + Vercel Speed Insights.
 
 ## 16. Changelog
 
+- 0.2 — Added section 3.3 Domain & SEO. Custom domain mandatory karena `.vercel.app` default noindex. SEO baseline checklist, indexable page map, email subdomain plan.
 - 0.1 — Initial stack pinning. Vercel + Neon + R2 + Resend + better-auth + tRPC + Drizzle + Upstash + Sentry. Mobile equal priority confirmed (timeline +2 weeks → ~20 weeks).

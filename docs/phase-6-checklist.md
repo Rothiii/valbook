@@ -2,7 +2,7 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.1
+Version: 0.2
 Source: cross-doc — final hardening pre-customer
 Window: **Week 19–20** (10 working days)
 
@@ -222,11 +222,52 @@ Bukan notif center penuh — hanya beberapa transactional email + in-app banner 
 
 ---
 
-### Group 6.11 — Beta Launch Prep (Day 10 sore)
+### Group 6.11 — Domain + SEO Setup (Day 10 pagi-siang)
+
+**Domain wajib**: `.vercel.app` di-noindex Vercel by default → tanpa custom domain Google tidak crawl.
+
+- [ ] Beli domain (Cloudflare Registrar / Namecheap / Porkbun) — TLD priority `.com` > `.id` > `.app`
+- [ ] Vercel project Settings → Domains → Add → set A/CNAME di registrar
+- [ ] Verify HTTPS auto-provisioned (Let's Encrypt)
+- [ ] Update env: `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`
+- [ ] Resend domain verify (DKIM + SPF + DMARC) di subdomain `mail.{domain}` atau `send.{domain}`
+- [ ] Update `RESEND_FROM_EMAIL` env
+- [ ] Test send email dari production domain → cek inbox + bukan spam
+
+**SEO baseline**:
+
+- [ ] `app/sitemap.ts` — generate sitemap dari static page + indexable route
+- [ ] `app/robots.ts`:
+  - Allow `/`, `/pricing`, `/help`, `/blog/*` (kalau ada)
+  - Disallow `/app/*`, `/public/*`, `/login`, `/register`, `/verify-*`, `/reset-password/*`, `/invite/*`
+- [ ] `metadata` API per public route: title (50-60 char), description (150-160 char), OG image, Twitter card
+- [ ] `opengraph-image.tsx` dynamic untuk landing + public share preview
+- [ ] Structured data JSON-LD untuk landing (Organization, FAQPage kalau ada)
+- [ ] Canonical URL set
+- [ ] hreflang tag untuk `/id/*` + `/en/*` (kalau locale routing pakai prefix)
+- [ ] Public share endpoint `/public/:token` set `X-Robots-Tag: noindex, nofollow`
+
+**Search Console**:
+
+- [ ] Google Search Console verify (TXT record atau HTML file)
+- [ ] Submit sitemap.xml
+- [ ] Bing Webmaster Tools verify + submit sitemap
+- [ ] Set preferred domain (www vs apex) di Search Console
+
+**Acceptance**:
+- [ ] Custom domain serve HTTPS + redirect www→apex (or vice versa)
+- [ ] Email dari `mail.{domain}` masuk inbox bukan spam (Gmail + Outlook test)
+- [ ] `https://{domain}/sitemap.xml` accessible
+- [ ] `https://{domain}/robots.txt` benar
+- [ ] OG preview render benar di WA + Twitter (debug pakai opengraph.xyz)
+- [ ] Search Console "URL inspection" landing page = indexable
+- [ ] Lighthouse SEO score >95
+
+---
+
+### Group 6.12 — Beta Launch Prep (Day 10 sore)
 
 - [ ] Production deploy final
-- [ ] Domain connect (kalau ada)
-- [ ] Email domain DKIM warmup (kirim test email)
 - [ ] Beta invite list email blast (manual atau form)
 - [ ] Onboarding email setelah signup (welcome + getting started link)
 - [ ] Help docs / FAQ minimal di `/help` (atau Notion external link)
@@ -316,4 +357,5 @@ Bukan notif center penuh — hanya beberapa transactional email + in-app banner 
 
 ## Changelog
 
+- 0.2 — Group 6.11 reworked: domain + SEO setup explicit (custom domain mandatory karena `.vercel.app` noindex). Tambah sitemap/robots/metadata/Search Console checklist. Beta launch jadi 6.12.
 - 0.1 — Initial Phase 6 launch checklist. 10-day plan, polish + ops + legal + launch.

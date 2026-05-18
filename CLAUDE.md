@@ -65,6 +65,113 @@ Major refactor (>3 files, schema migration, dependency change): treat as feature
 
 ---
 
+## Architecture — Next.js + tRPC Feature-First
+
+Pakai **feature-sliced** organization adapted untuk Next.js + tRPC. Tidak pakai layered/clean-arch kaku ala Express karena Next.js sudah punya konvensi sendiri.
+
+### Folder structure
+
+```
+apps/web/
+├── app/                              # Next.js App Router (thin route files)
+│   ├── (auth)/                       # login, register, verify-email
+│   ├── (app)/                        # authenticated routes
+│   ├── api/                          # route handlers
+│   │   ├── auth/[...all]/            # better-auth
+│   │   ├── trpc/[trpc]/              # tRPC handler
+│   │   ├── public/[token]/           # public share REST
+│   │   └── webhooks/cron/            # cron
+│   └── public/[token]/               # public share view
+└── src/
+    ├── features/                     # Feature-first vertical slice
+    │   └── <feature>/
+    │       ├── components/           # React components
+    │       ├── hooks/                # react-query hooks, UI hooks
+    │       ├── server/               # Server-only code untuk fitur ini
+    │       │   ├── db.ts             # Drizzle table definition
+    │       │   ├── service.ts        # Business logic + DB queries
+    │       │   └── router.ts         # tRPC router (procedures inline)
+    │       ├── schema.ts             # Zod schemas (shared client+server)
+    │       └── types.ts              # TS types (inferred from db/schema)
+    ├── shared/                       # Cross-cutting reusable
+    │   ├── ui/                       # shadcn/ui + design primitives
+    │   ├── hooks/                    # Shared hooks (useDebounce, etc)
+    │   ├── utils/                    # Pure utils (cn, format)
+    │   ├── lib/                      # Client+server libs (auth-client, trpc-client)
+    │   └── types/                    # Shared types (Role, Currency)
+    └── server/                       # Server-only cross-cutting infra
+        ├── db.ts                     # Drizzle client + schema aggregator
+        ├── auth.ts                   # better-auth config
+        ├── trpc.ts                   # tRPC init + middleware + root router
+        └── jobs/                     # Cron handlers
+```
+
+### Per-feature backend
+
+3 file di `server/`:
+
+| File | Responsibility |
+|---|---|
+| `db.ts` | Drizzle table + relations + indexes |
+| `service.ts` | Business logic + DB queries via Drizzle. Default 1 file, split kalau >300 LOC |
+| `router.ts` | tRPC router. Procedure handlers inline panggil service |
+
+**Tidak ada layered hard split** (controller/service/repository terpisah). tRPC procedure = controller. Drizzle inference = entity. Zod = DTO.
+
+**Split kalau perlu**: kalau `service.ts` jadi besar, pisah jadi `service-create.ts`, `service-list.ts`, dll. Tidak forced upfront.
+
+### Per-feature frontend
+
+| Folder/File | Responsibility |
+|---|---|
+| `components/` | React components spesifik fitur (AssetForm, AssetTable) |
+| `hooks/` | react-query wrapped tRPC + UI hooks (`useAssetList`, `useArchiveAsset`) |
+| `schema.ts` | Zod schemas (form validation client + tRPC input server) |
+| `types.ts` | TS types (re-export dari `InferSelectModel` + zod `z.infer`) |
+
+### Server-only cross-cutting
+
+`src/server/`:
+- `db.ts` — init Drizzle client + aggregate semua feature `db.ts`
+- `auth.ts` — better-auth config (uses Drizzle adapter)
+- `trpc.ts` — tRPC instance, context builder, middleware (`workspaceProcedure`, `editorProcedure`, `ownerProcedure`), root router yang merge semua feature router
+- `jobs/` — cron handlers
+
+### Example: `features/asset/`
+
+```
+features/asset/
+├── components/
+│   ├── asset-form.tsx
+│   ├── asset-table.tsx
+│   └── asset-detail.tsx
+├── hooks/
+│   ├── use-asset-list.ts
+│   └── use-archive-asset.ts
+├── server/
+│   ├── db.ts                 # assets, asset_tags tables
+│   ├── service.ts            # createAsset, listAssets, archiveAsset, etc
+│   └── router.ts             # assetRouter = router({ create, list, archive, ... })
+├── schema.ts                 # createAssetSchema, updateAssetSchema (zod)
+└── types.ts                  # type Asset, AssetInput, etc
+```
+
+### Aggregator pattern
+
+- `src/server/db.ts` import + re-export semua `features/*/server/db.ts` → Drizzle schema lengkap untuk migration
+- `src/server/trpc.ts` import + merge semua `features/*/server/router.ts` → root tRPC router
+
+Feature tidak tau satu sama lain. Kalau ada cross-feature call, panggil fungsi service yang di-export dari feature lain (e.g., `AssetService` panggil `activityService.write(...)`).
+
+### Rules
+
+- Feature folder **self-contained** — bisa hapus folder = hapus fitur tanpa break feature lain (kecuali aggregator)
+- Server code **harus** marked dengan `import 'server-only'` di top file untuk safety
+- Tidak import dari `app/` ke `src/` — `app/` adalah consumer
+- Tidak import dari satu feature `components/` ke feature lain — pindahkan ke `shared/ui/` kalau perlu reuse
+
+---
+
 ## Naming Conventions
 
 ### Language
@@ -214,4 +321,5 @@ Every mutation must write `activity_logs` entry transactionally with the main ch
 
 ## Changelog
 
+- 2026-05-18 — Architecture: feature-sliced organization adapted ke Next.js + tRPC. Per-feature backend simplified ke 3 file (db, service, router) — bukan 8-layer clean arch (yang lebih cocok Express). Cross-cutting infra di `src/server/`. Aggregator pattern untuk DB schema + tRPC root router.
 - 2026-05-18 — Initial CLAUDE.md. Workflow rules (write-a-prd skill for features, skip for bug fix), naming conventions, agent usage referencing project skills, tooling.

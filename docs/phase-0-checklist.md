@@ -2,7 +2,7 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.1
+Version: 0.2
 Source: [tech-stack.md](tech-stack.md) section 15
 Target window: **Week 1–2** (10 working days)
 
@@ -111,14 +111,15 @@ pnpm lefthook install
 
 ```bash
 cd apps/web
-pnpm dlx shadcn@canary init
-pnpm dlx shadcn@canary add button card input label form
+pnpm dlx shadcn@latest init --defaults --base radix
+pnpm dlx shadcn@latest add button card input label form dialog dropdown-menu badge table tabs sonner select textarea checkbox separator skeleton sheet
 ```
 
-**Files**:
-- `apps/web/src/components/ui/` — shadcn components
-- `apps/web/src/lib/utils.ts` — cn helper
+**Files** (post-restructure ke clean architecture):
+- `apps/web/src/shared/ui/` — shadcn components (moved dari `components/ui/`)
+- `apps/web/src/shared/utils/cn.ts` — cn helper (moved dari `lib/utils.ts`)
 - `apps/web/app/globals.css` — Tailwind v4 + CSS vars
+- `apps/web/components.json` — aliases pointing ke `@/src/shared/ui` + `@/src/shared/utils/cn`
 
 **Acceptance**:
 - [ ] Tampil Button shadcn di home page test
@@ -139,25 +140,24 @@ pnpm add drizzle-orm @neondatabase/serverless
 pnpm add -D drizzle-kit
 ```
 
-**Files**:
-- `apps/web/src/server/db/index.ts` — Neon HTTP client + Drizzle init
-- `apps/web/src/server/db/schema/` — folder untuk schema files
-- `apps/web/drizzle.config.ts` — drizzle-kit config
+**Files** (feature-first — Drizzle table per feature):
+- `apps/web/src/server/db.ts` — Neon HTTP client + Drizzle init + **schema aggregator** (import + re-export semua feature db)
+- `apps/web/drizzle.config.ts` — drizzle-kit config pointing ke `src/server/db.ts`
 - `apps/web/.env.local` — DATABASE_URL
 
-**Schema files** (sesuai ERD section 2):
-- `apps/web/src/server/db/schema/auth.ts` — better-auth tables (later)
-- `apps/web/src/server/db/schema/workspace.ts` — workspaces, members, invitations
-- `apps/web/src/server/db/schema/taxonomy.ts` — categories, fields, owner_labels, tags
-- `apps/web/src/server/db/schema/asset.ts` — assets, asset_tags
-- `apps/web/src/server/db/schema/valuation.ts` — valuation_history
-- `apps/web/src/server/db/schema/transaction.ts` — transactions (V2, schema definition tetap)
-- `apps/web/src/server/db/schema/attachment.ts` — attachments
-- `apps/web/src/server/db/schema/activity.ts` — activity_logs
-- `apps/web/src/server/db/schema/share.ts` — public_shares
-- `apps/web/src/server/db/schema/currency.ts` — currencies, exchange_rates
-- `apps/web/src/server/db/schema/template.ts` — workspace_templates
-- `apps/web/src/server/db/schema/index.ts` — re-export all
+**Per-feature DB tables** (di `src/features/<name>/server/db.ts`):
+- `features/auth/` — handled by better-auth (Step 6)
+- `features/workspace/server/db.ts` — workspaces, workspace_members, workspace_invitations, workspace_templates
+- `features/category/server/db.ts` — categories, category_fields
+- `features/owner-label/server/db.ts` — owner_labels
+- `features/tag/server/db.ts` — tags
+- `features/asset/server/db.ts` — assets, asset_tags
+- `features/valuation/server/db.ts` — valuation_history
+- `features/transaction/server/db.ts` — transactions (V2, defined but not migrated)
+- `features/attachment/server/db.ts` — attachments
+- `features/activity/server/db.ts` — activity_logs
+- `features/sharing/server/db.ts` — public_shares
+- `features/currency/server/db.ts` — currencies, exchange_rates
 
 **Acceptance**:
 - [ ] `pnpm drizzle-kit generate` produces migration file
@@ -180,9 +180,9 @@ pnpm add better-auth
 ```
 
 **Files**:
-- `apps/web/src/server/auth/index.ts` — better-auth config
+- `apps/web/src/server/auth.ts` — better-auth config
 - `apps/web/app/api/auth/[...all]/route.ts` — handler
-- `apps/web/src/lib/auth-client.ts` — client SDK
+- `apps/web/src/shared/lib/auth-client.ts` — client SDK
 
 **Config**:
 - Database adapter: Drizzle
@@ -212,11 +212,10 @@ pnpm add superjson zod
 ```
 
 **Files**:
-- `apps/web/src/server/trpc.ts` — context + middleware (`protectedProcedure`, `workspaceProcedure`, `editorProcedure`, `ownerProcedure`)
-- `apps/web/src/server/routers/index.ts` — root router (empty)
+- `apps/web/src/server/trpc.ts` — tRPC instance + context + middleware (`protectedProcedure`, `workspaceProcedure`, `editorProcedure`, `ownerProcedure`) + **root router aggregator**
 - `apps/web/app/api/trpc/[trpc]/route.ts` — handler
-- `apps/web/src/lib/trpc-client.ts` — React Query client
-- `apps/web/src/lib/trpc-provider.tsx` — provider
+- `apps/web/src/shared/lib/trpc-client.ts` — React Query client
+- `apps/web/src/shared/lib/trpc-provider.tsx` — provider
 
 **Middleware** (per permission-matrix section 5.1):
 - `protectedProcedure` — require session
@@ -234,24 +233,21 @@ pnpm add superjson zod
 
 ---
 
-## Step 8: Zod schema folder
+## Step 8: Zod schemas (per-feature)
 
 **Goal**: shared validation.
 
-**Files**:
-- `apps/web/src/lib/schema/workspace.ts`
-- `apps/web/src/lib/schema/asset.ts`
-- `apps/web/src/lib/schema/category.ts`
-- `apps/web/src/lib/schema/valuation.ts`
-- `apps/web/src/lib/schema/common.ts` — currency, id, slug helpers
-- `apps/web/src/lib/schema/index.ts` — re-export
+**Files** (feature-first — schema per feature):
+- `apps/web/src/features/<name>/schema.ts` (per feature, defined when feature built Phase 1+)
+- `apps/web/src/shared/types/common.ts` — currency, id, slug, role enums + zod helpers
 
 **Acceptance**:
-- [ ] Each entity punya `create*Schema`, `update*Schema`
-- [ ] Schema sharable client + server (no server-only deps)
+- [ ] Each feature punya `create*Schema`, `update*Schema` ketika built
+- [ ] Schema sharable client + server (no server-only deps di schema.ts)
 - [ ] Custom error messages bahasa Indonesia (atau later i18n)
+- [ ] Common shared types tersedia di shared/types
 
-**Est**: 3 hours
+**Est**: 2 hours (setup common only — feature schemas built per-phase)
 
 ---
 
@@ -264,7 +260,7 @@ pnpm add @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
 ```
 
 **Files**:
-- `apps/web/src/lib/r2.ts` — S3-compat client + helper
+- `apps/web/src/shared/lib/r2.ts` — S3-compat client + helper
 
 **Functions**:
 - `getUploadUrl({ key, contentType, sizeBytes })` — return presigned PUT URL (10 min expiry)
@@ -291,7 +287,7 @@ pnpm add -D @react-email/components @react-email/render
 ```
 
 **Files**:
-- `apps/web/src/lib/email.ts` — Resend client + send helper
+- `apps/web/src/shared/lib/email.ts` — Resend client + send helper
 - `apps/web/src/emails/verify-email.tsx` — template
 - `apps/web/src/emails/invitation.tsx` — template
 - `apps/web/src/emails/password-reset.tsx` — template
@@ -315,9 +311,9 @@ pnpm add @upstash/redis @upstash/ratelimit
 ```
 
 **Files**:
-- `apps/web/src/lib/redis.ts` — Upstash client
-- `apps/web/src/lib/rate-limit.ts` — ratelimit configs per endpoint (sesuai api-design section 8)
-- `apps/web/src/lib/cache.ts` — cache helper (get/set/invalidate)
+- `apps/web/src/shared/lib/redis.ts` — Upstash client
+- `apps/web/src/shared/lib/rate-limit.ts` — ratelimit configs per endpoint (sesuai api-design section 8)
+- `apps/web/src/shared/lib/cache.ts` — cache helper (get/set/invalidate)
 
 **Rate limit configs**:
 - signUp: 5/hour/IP
@@ -567,4 +563,5 @@ Yang penting: infrastructure + first slice end-to-end. Sisanya Phase berikut.
 
 ## Changelog
 
+- 0.2 — Update file path Step 4-8 ke feature-first layout: `src/shared/ui/`, `src/shared/utils/cn.ts`, `src/server/db.ts` aggregator, `src/server/auth.ts`, `src/server/trpc.ts`, per-feature `features/<name>/server/db.ts`. Drop clean-arch 8-layer (terlalu rigid untuk Next.js + tRPC).
 - 0.1 — Initial Phase 0 checklist. 17 steps, 10-day plan, acceptance per step, risk register.

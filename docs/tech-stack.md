@@ -2,7 +2,7 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.2
+Version: 0.3
 Source: cross-doc decisions from [erd.md](erd.md), [api-design.md](api-design.md), [mvp-stories.md](mvp-stories.md), [permission-matrix.md](permission-matrix.md), [ux-flows.md](ux-flows.md)
 
 ---
@@ -201,55 +201,106 @@ Source: cross-doc decisions from [erd.md](erd.md), [api-design.md](api-design.md
 
 ---
 
-## 5. Repo Structure (proposed)
+## 5. Repo Structure — Feature-First (Next.js + tRPC)
+
+Per [CLAUDE.md](../CLAUDE.md) section Architecture.
 
 ```
-asset-workspace/
+valbook/                              # monorepo root
 ├── apps/
-│   └── web/                       # Next.js app
-│       ├── app/
-│       │   ├── (marketing)/
-│       │   ├── (auth)/
-│       │   ├── (app)/
+│   └── web/                          # Next.js app
+│       ├── app/                      # App Router (thin route files only)
+│       │   ├── (auth)/               # login, register, verify-email
+│       │   ├── (app)/                # authenticated routes
 │       │   │   └── w/[slug]/...
-│       │   ├── public/[token]/
-│       │   └── api/
-│       │       ├── auth/[...all]/
-│       │       ├── public/[token]/
-│       │       ├── attachments/
-│       │       └── webhooks/cron/
+│       │   ├── api/
+│       │   │   ├── auth/[...all]/    # better-auth handler
+│       │   │   ├── trpc/[trpc]/      # tRPC handler
+│       │   │   ├── public/[token]/   # public share REST
+│       │   │   └── webhooks/cron/    # cron handlers
+│       │   └── public/[token]/       # public share view page
 │       ├── src/
-│       │   ├── server/
-│       │   │   ├── routers/
-│       │   │   ├── db/            # Drizzle schema + queries
-│       │   │   ├── auth/          # better-auth config
-│       │   │   ├── jobs/          # cron handlers
-│       │   │   └── trpc.ts
-│       │   ├── lib/
-│       │   │   ├── schema/        # zod
-│       │   │   ├── utils/
-│       │   │   ├── r2.ts
-│       │   │   ├── email.ts
-│       │   │   └── rate-limit.ts
-│       │   ├── components/
-│       │   │   ├── ui/            # shadcn/ui
-│       │   │   └── ...
-│       │   ├── emails/            # React Email templates
-│       │   └── styles/
-│       ├── drizzle/               # migrations
+│       │   ├── features/             # Feature modules
+│       │   │   ├── auth/
+│       │   │   ├── workspace/
+│       │   │   ├── asset/
+│       │   │   ├── category/
+│       │   │   ├── valuation/
+│       │   │   ├── member/
+│       │   │   ├── attachment/
+│       │   │   ├── activity/
+│       │   │   ├── sharing/
+│       │   │   ├── currency/
+│       │   │   ├── dashboard/
+│       │   │   ├── owner-label/
+│       │   │   └── tag/
+│       │   │   # each feature has:
+│       │   │   #   components/, hooks/, schema.ts, types.ts,
+│       │   │   #   server/{db,service,router}.ts
+│       │   ├── shared/               # cross-cutting reusable
+│       │   │   ├── ui/               # shadcn/ui + design primitives
+│       │   │   ├── hooks/            # useDebounce, useMediaQuery, etc
+│       │   │   ├── utils/            # cn, formatCurrency, formatDate
+│       │   │   ├── lib/              # auth-client, trpc-client, query-client
+│       │   │   └── types/            # Role, Currency, common unions
+│       │   ├── server/               # server-only cross-cutting infra
+│       │   │   ├── db.ts             # Drizzle client + schema aggregator
+│       │   │   ├── auth.ts           # better-auth config
+│       │   │   ├── trpc.ts           # tRPC init + middleware + root router
+│       │   │   └── jobs/             # cron handlers
+│       │   └── emails/               # React Email templates
+│       ├── drizzle/                  # generated migrations
 │       └── tests/
-│           ├── unit/
-│           └── e2e/
-├── packages/                      # opsional future shared
-├── .github/workflows/
+│           ├── unit/                 # vitest
+│           └── e2e/                  # playwright
+├── packages/                         # optional future shared packages
+├── agents/skills/                    # project-local agent skills
+├── docs/                             # planning + reference docs
+├── prd/                              # feature-specific PRDs
+├── .github/workflows/                # CI
 ├── biome.json
-├── tsconfig.json
+├── lefthook.yml
 ├── package.json
 ├── pnpm-workspace.yaml
 └── vercel.json
 ```
 
-**Decision**: monorepo via pnpm workspace untuk siap split package nanti. MVP cuma 1 app, tapi struktur disiapkan.
+### Per-feature layout
+
+```
+features/<feature>/
+├── components/                       # React components specific to feature
+├── hooks/                            # react-query hooks + UI hooks
+├── server/
+│   ├── db.ts                         # Drizzle table
+│   ├── service.ts                    # Business logic + DB queries
+│   └── router.ts                     # tRPC router (procedures inline)
+├── schema.ts                         # Zod schemas (shared client+server)
+└── types.ts                          # TS types (inferred from db/schema)
+```
+
+**3 file backend** per feature: `db`, `service`, `router`. Tidak ada layered hard split (controller/repository/dto terpisah) karena Next.js + tRPC + Drizzle sudah collapse layer-layer itu:
+- tRPC procedure = controller
+- Drizzle `InferSelectModel` = entity
+- Zod schema = DTO
+
+**Split kalau perlu**: kalau `service.ts` >300 LOC, pecah jadi `service-create.ts`, `service-list.ts`. Tidak forced upfront.
+
+### Aggregator
+
+- `src/server/db.ts` — init Drizzle client + import-and-export semua feature `db.ts`
+- `src/server/trpc.ts` — tRPC instance + middleware + root router yang merge feature router
+
+### Why feature-first
+
+- Vertical slice — hapus folder = hapus fitur clean
+- Tambah fitur = tambah folder, ga sentuh struktur global
+- DB schema co-located per fitur
+- Tidak ada `src/services/`, `src/controllers/`, `src/repositories/` god-folder yang tumbuh besar
+
+### Decision
+
+Monorepo via pnpm workspace untuk siap split package nanti. MVP cuma 1 app. Feature-first layout supports scale tanpa rigid layered yang overkill untuk Next.js + tRPC.
 
 ---
 
@@ -451,5 +502,6 @@ Pantau via Sentry Performance + Vercel Speed Insights.
 
 ## 16. Changelog
 
+- 0.3 — Section 5 reworked: feature-first organization untuk Next.js + tRPC. Per-feature backend simplified ke 3 file (db, service, router) bukan 8-layer (clean arch kaku lebih cocok Express). Aggregator pattern di `src/server/db.ts` + `src/server/trpc.ts`.
 - 0.2 — Added section 3.3 Domain & SEO. Custom domain mandatory karena `.vercel.app` default noindex. SEO baseline checklist, indexable page map, email subdomain plan.
 - 0.1 — Initial stack pinning. Vercel + Neon + R2 + Resend + better-auth + tRPC + Drizzle + Upstash + Sentry. Mobile equal priority confirmed (timeline +2 weeks → ~20 weeks).

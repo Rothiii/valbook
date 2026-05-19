@@ -14,3 +14,17 @@ export function useWorkspaceActions() {
     })),
   );
 }
+
+export function useMembershipActions() {
+  return useWorkspaceStore(
+    useShallow((s) => ({
+      inviteMember: s.inviteMember,
+      revokeInvitation: s.revokeInvitation,
+      resendInvitation: s.resendInvitation,
+      acceptInvitation: s.acceptInvitation,
+      updateMemberRole: s.updateMemberRole,
+      removeMember: s.removeMember,
+      leaveWorkspace: s.leaveWorkspace,
+    })),
+  );
+}

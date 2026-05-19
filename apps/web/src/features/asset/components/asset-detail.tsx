@@ -1,17 +1,19 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { ActivityFeed } from '@/src/features/activity/components/activity-feed';
 import { useSession } from '@/src/features/auth/hooks/use-session';
 import { useCategory } from '@/src/features/category/hooks/use-categories';
+import { useCategoryFields } from '@/src/features/category/hooks/use-fields';
 import { useOwnerLabel } from '@/src/features/owner-label/hooks/use-owner-labels';
 import { Badge } from '@/src/shared/ui/badge';
 import { Button } from '@/src/shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/shared/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/src/shared/ui/tabs';
-
+import { useAssetAncestors } from '../hooks/use-asset-tree';
 import { useAssetActions, useAssetChildren } from '../hooks/use-assets';
 import type { Asset } from '../types';
 
@@ -24,8 +26,10 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
   const router = useRouter();
   const { user } = useSession();
   const category = useCategory(asset.categoryId);
+  const fields = useCategoryFields(asset.categoryId);
   const owner = useOwnerLabel(asset.ownerLabelId);
   const children = useAssetChildren(asset.id);
+  const ancestors = useAssetAncestors(asset);
   const { archiveAsset, unarchiveAsset, deleteAsset } = useAssetActions();
 
   function handleArchiveToggle() {
@@ -53,6 +57,19 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
 
   return (
     <div className="space-y-6">
+      {ancestors.length > 0 ? (
+        <nav className="text-xs text-muted-foreground">
+          {ancestors.map((a, idx) => (
+            <span key={a.id}>
+              <Link href={`/app/w/${workspaceSlug}/assets/${a.id}`} className="underline">
+                {a.name}
+              </Link>
+              {idx < ancestors.length ? <span className="px-1">/</span> : null}
+            </span>
+          ))}
+          <span className="text-foreground">{asset.name}</span>
+        </nav>
+      ) : null}
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
         <div>
           <h1 className="text-2xl">{asset.name}</h1>
@@ -148,6 +165,21 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
         <TabsContent value="overview" className="mt-4 space-y-3">
           {asset.code ? <DetailRow label="Code" value={asset.code} /> : null}
           {asset.location ? <DetailRow label="Location" value={asset.location} /> : null}
+          {fields.length > 0 ? (
+            <div className="border border-border p-4">
+              <p className="mb-3 text-xs uppercase tracking-wider text-muted-foreground">
+                Custom fields
+              </p>
+              <dl className="grid gap-2 sm:grid-cols-2">
+                {fields.map((f) => (
+                  <div key={f.id} className="text-sm">
+                    <dt className="text-xs text-muted-foreground">{f.label}</dt>
+                    <dd className="mt-0.5">{formatFieldValue(asset.customFields[f.key])}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
           {asset.notes ? (
             <div className="border border-border p-4">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Notes</p>
@@ -189,4 +221,11 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <p className="col-span-2">{value}</p>
     </div>
   );
+}
+
+function formatFieldValue(value: unknown): string {
+  if (value == null || value === '') return '—';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (Array.isArray(value)) return value.length === 0 ? '—' : value.join(', ');
+  return String(value);
 }

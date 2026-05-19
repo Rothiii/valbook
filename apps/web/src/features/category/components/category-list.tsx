@@ -16,8 +16,10 @@ import {
 import { EmptyState } from '@/src/shared/ui/empty-state';
 
 import { useCategories, useCategoryActions } from '../hooks/use-categories';
+import { useCategoryFields } from '../hooks/use-fields';
 import type { Category } from '../types';
 import { CategoryForm } from './category-form';
+import { FieldManager } from './field-manager';
 
 export type CategoryListProps = {
   workspaceId: string;
@@ -64,37 +66,60 @@ export function CategoryList({ workspaceId }: CategoryListProps) {
 function CategoryRow({ category, workspaceId }: { category: Category; workspaceId: string }) {
   const { user } = useSession();
   const { deleteCategory } = useCategoryActions();
+  const fields = useCategoryFields(category.id);
+  const [fieldsOpen, setFieldsOpen] = useState(false);
+
   return (
     <li className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
       <div className="flex items-center gap-3">
         <span className="text-lg">{category.icon ?? '◯'}</span>
         <div>
           <p>{category.name}</p>
-          <p className="text-xs text-muted-foreground">{category.color ?? '—'}</p>
+          <p className="text-xs text-muted-foreground">
+            {fields.length} field{fields.length === 1 ? '' : 's'} · {category.color ?? '—'}
+          </p>
         </div>
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => {
-          if (!user) return;
-          if (confirm(`Delete category "${category.name}"?`)) {
-            try {
-              deleteCategory({
-                id: category.id,
-                workspaceId,
-                actorId: user.id,
-                actorName: user.name,
-              });
-              toast.success('Category deleted');
-            } catch (error) {
-              toast.error(error instanceof Error ? error.message : 'Failed');
+      <div className="flex items-center gap-2">
+        <Dialog open={fieldsOpen} onOpenChange={setFieldsOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm">
+              Fields
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Fields · {category.name}</DialogTitle>
+              <DialogDescription>
+                Custom data fields rendered when creating an asset in this category.
+              </DialogDescription>
+            </DialogHeader>
+            <FieldManager category={category} workspaceId={workspaceId} />
+          </DialogContent>
+        </Dialog>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            if (!user) return;
+            if (confirm(`Delete category "${category.name}"?`)) {
+              try {
+                deleteCategory({
+                  id: category.id,
+                  workspaceId,
+                  actorId: user.id,
+                  actorName: user.name,
+                });
+                toast.success('Category deleted');
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Failed');
+              }
             }
-          }
-        }}
-      >
-        Delete
-      </Button>
+          }}
+        >
+          Delete
+        </Button>
+      </div>
     </li>
   );
 }

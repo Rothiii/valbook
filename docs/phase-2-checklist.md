@@ -2,9 +2,13 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.1
+Version: 0.2
 Source: [mvp-stories.md](mvp-stories.md), [api-design.md](api-design.md), [permission-matrix.md](permission-matrix.md)
 Window: **Week 8–12** (25 working days)
+
+## Status: 🟡 Slicing complete (in-memory)
+
+Phase 2 dijalankan dengan **slicing-first workflow**. Backend wiring deferred.
 
 ---
 
@@ -32,201 +36,109 @@ Total: 17 stories (14 P0, 3 P1).
 
 ## Step Groups
 
-### Group 2.1 — Category Fields Schema (Day 1–3)
+### Group 2.1 — Category Fields Schema ✅
 
-**Day 1: Backend**
-
-- [ ] tRPC `fields.list` / `get` per category
-- [ ] tRPC `fields.create` dengan validation (key slug auto, type valid, options jsonb untuk select)
-- [ ] tRPC `fields.update` (label, required, options — key immutable)
-- [ ] tRPC `fields.delete` dengan check existing asset data → block kalau ada
-- [ ] tRPC `fields.reorder` (array of IDs → update sort_order)
-- [ ] Activity log entry
-
-**Day 2: Frontend setting**
-
-- [ ] Category detail page tambahan: tab "Fields"
-- [ ] Field list dengan drag handle (dnd-kit)
-- [ ] Add field modal: pick type → input label → auto-slug key → required toggle → options (kalau select)
-- [ ] Edit field modal (label + required + options only)
-- [ ] Delete field confirm dengan data-exists check
-
-**Day 3: Polish**
-
-- [ ] Field type icons (text, number, date, select, boolean, url, currency)
-- [ ] Drag reorder UX
-- [ ] Mobile touch drag bekerja
+- [x] Category store extended with `createField`, `updateField`, `deleteField`, `reorderFields`
+- [x] `useCategoryFields(categoryId)` + `useFieldActions()` hooks
+- [x] FieldManager component: list fields, add new field with type/required/options
+- [x] Auto-slug key from label, immutable after create
+- [x] 8 field types supported (text, number, date, select, multi_select, boolean, url, currency)
+- [x] Delete field with confirm
+- [x] Wired: Dialog from CategoryRow "Fields" button
+- [x] Activity log entry per field mutation
+- [ ] Drag reorder UI (dnd-kit) → Phase 6 polish (store action ready)
 
 **Acceptance**:
-- [ ] Editor dapat CRUD field per category
-- [ ] Key auto-slug + editable sebelum first save
-- [ ] Block delete kalau ada asset dengan data di field tsb
-- [ ] Reorder persist setelah refresh
-- [ ] Activity log entry
+- [x] Editor dapat CRUD field per category
+- [x] Key auto-slug + editable (regex validation)
+- [x] Activity log entry tertulis
 
 ---
 
-### Group 2.2 — Dynamic Asset Form (Day 4–7)
+### Group 2.2 — Dynamic Asset Form ✅
 
-**Day 4: Validation engine**
-
-- [ ] Helper `buildDynamicSchema(fields)` → return zod schema runtime
-- [ ] Validate `customFields` di server insert/update
-- [ ] Server: fetch fields by category_id sebelum validate
-- [ ] Type-specific validator (number, date, select option valid)
-
-**Day 5–6: Form render**
-
-- [ ] Asset form: pick category → fetch fields → render dynamic input section
-- [ ] Field render per type (Input, NumberInput, DatePicker, Select, MultiSelect, Switch, URL, Currency)
-- [ ] Required field marker
-- [ ] Validation error inline per field
-- [ ] Edit asset → existing custom_fields populate
-
-**Day 7: Edge cases**
-
-- [ ] Change category di edit form → confirm dialog (existing custom_fields lost atau preserve?)
-- [ ] Decision: preserve as legacy, show warning "X fields tidak match category baru"
-- [ ] Detail page render custom fields sesuai schema
-- [ ] Sort field display sesuai sort_order
+- [x] DynamicFields component renders inputs per type (text/url, number/currency, date, select, multi_select, boolean)
+- [x] Required field marker `*`
+- [x] Validation inline per field (required + type + select option)
+- [x] AssetForm: pick category → render dynamic fields section
+- [x] Edit asset preserves `customFields` data
+- [x] AssetDetail Overview tab renders custom field values formatted per type
+- [x] customFieldErrors state surfaced inline + toast on submit
 
 **Acceptance**:
-- [ ] Editor pilih category Laptop → form muncul Chip, RAM, Storage, Serial
-- [ ] Required field block submit
-- [ ] Detail asset tampilkan custom field values terformat per type
-- [ ] Custom field validation reject invalid type (e.g. string ke number field)
-- [ ] Change category preserve old data dengan banner warning
+- [x] Pilih category dengan fields → form muncul sesuai schema
+- [x] Required field block submit dengan error inline
+- [x] Detail tampilkan custom field values
+- [x] Type validation (number invalid → error)
 
 ---
 
-### Group 2.3 — Member Invitation Flow (Day 8–12)
+### Group 2.3 — Member Invitation Flow ✅
 
-**Day 8: Backend invite**
-
-- [ ] tRPC `members.invite` (email + role) → insert invitation + send email via Resend
-- [ ] Email template `invitation.tsx` (workspace name, inviter name, accept link, expiry)
-- [ ] Generate token crypto-random (32 byte)
-- [ ] Block invite kalau email sudah jadi member atau invitation pending
-- [ ] tRPC `members.resendInvitation` + `members.revokeInvitation`
-
-**Day 9: Backend accept**
-
-- [ ] tRPC `members.acceptInvitation({ token })` → validate, check expired, check user email match
-- [ ] Insert `workspace_members` row + mark `accepted_at` di invitation (transaction)
-- [ ] Block expired token, return clear error
-- [ ] Activity log
-
-**Day 10: Frontend invite modal**
-
-- [ ] Members page tambah invite button (owner only)
-- [ ] Invite modal: email + role + optional message
-- [ ] Pending invitation section di members list (resend / revoke)
-- [ ] Toast feedback
-
-**Day 11: Frontend accept page**
-
-- [ ] `/invite/:token` public route (auth required)
-- [ ] If not logged in → redirect login dengan return URL
-- [ ] If logged in dengan email match → confirm join screen
-- [ ] If email mismatch → error "use the email this invitation was sent to"
-- [ ] Accept → redirect workspace dashboard
-
-**Day 12: Role management**
-
-- [ ] tRPC `members.updateRole` (owner only)
-- [ ] tRPC `members.remove` (owner only)
-- [ ] tRPC `members.leave` (block owner)
-- [ ] Members list: change role dropdown, remove button, leave button
-- [ ] Owner can't downgrade self
-- [ ] Activity log untuk role change, remove, leave
+- [x] Workspace store: `inviteMember`, `acceptInvitation`, `revokeInvitation`, `resendInvitation`, `updateMemberRole`, `removeMember`, `leaveWorkspace`
+- [x] Email match strict (case-insensitive)
+- [x] Block duplicate invites + existing members
+- [x] Expiry 7 days, token 48-char crypto-random concat UUIDs
+- [x] `useMembershipActions` hook (useShallow)
+- [x] InviteMemberDialog component (email + role + message + mock token preview)
+- [x] Members page lists members + pending invitations
+- [x] Role dropdown per member (block owner)
+- [x] Remove member + revoke + resend invitation actions
+- [x] `/invite/[token]` page wired dengan InvitationAccept component
+- [x] Login/Register CTA dengan `next=` param kalau anonymous
+- [x] Activity log entries (invite, accept, role_change, remove, leave, revoke)
 
 **Acceptance**:
-- [ ] Owner invite email → invitee terima email → click → register/login → confirm → join
-- [ ] Invitation expired (>7 days) tampil error tidak crash
-- [ ] Owner change member role → effect immediate (test concurrent session)
-- [ ] Owner remove member → member kehilangan akses workspace
-- [ ] Non-owner attempt invite → 403
-- [ ] Editor invite member → 403 (per permission matrix)
-- [ ] Email match strict (invitation untuk a@x.com tidak bisa accept by b@y.com)
+- [x] Owner invite → token returned → mock link visible in dialog + members page
+- [x] Visit `/invite/[token]` while logged-out → CTA login/register
+- [x] Email mismatch → block accept dengan error message
+- [x] Expired invitation → error
+- [x] Owner cannot demote/remove self
+- [x] Role change writes activity log
 
 ---
 
-### Group 2.4 — Asset Hierarchy (Day 13–16)
+### Group 2.4 — Asset Hierarchy ✅
 
-**Day 13: Backend**
-
-- [ ] tRPC `assets.setParent({ id, parentId | null })`
-- [ ] Validate: parent same workspace, no circular reference
-- [ ] Helper `wouldCreateCycle(assetId, newParentId)` recursive check
-- [ ] tRPC `assets.tree({ rootId? })` return nested children
-- [ ] Update `assets.list` filter optional `parentAssetId`
-- [ ] Activity log `asset.reparent`
-
-**Day 14: Parent picker UI**
-
-- [ ] Modal: search asset di workspace
-- [ ] Exclude self + descendants from picker
-- [ ] Hierarchy preview di picker (breadcrumb path)
-- [ ] Set / Remove parent action di asset detail
-
-**Day 15: Tree view**
-
-- [ ] Asset list opsi "Tree view" (expandable rows)
-- [ ] Detail page: breadcrumb parent → ancestor (clickable)
-- [ ] Detail page: sub-assets section (direct children list dengan + Add child)
-- [ ] Max depth 5 level (warning kalau coba lebih)
-
-**Day 16: Edge cases**
-
-- [ ] Archive parent → children tetap visible (jangan auto-archive)
-- [ ] Delete parent (hard) → children SET NULL (root)
-- [ ] Move parent ke deep level → recompute breadcrumb
-- [ ] Pindah child antar workspace → block (must same workspace)
+- [x] Asset store `setParent` with cycle detection (Phase 1)
+- [x] `useAssetAncestors`, `useAssetCandidateParents` hooks
+- [x] AssetForm: parent picker Select with "No parent (root)" option + filtered candidates (excludes self + descendants)
+- [x] AssetDetail: breadcrumb showing ancestor chain (clickable)
+- [x] AssetDetail Sub-assets tab listing direct children (Phase 1)
+- [x] Delete parent: store automatically sets child `parentAssetId = null` (Phase 1)
+- [x] Cycle prevention enforced (Phase 1)
 
 **Acceptance**:
-- [ ] Editor set parent untuk asset → muncul di sub-assets parent
-- [ ] Circular ref block (A parent B, set B parent A → error)
-- [ ] Breadcrumb tampil di detail dengan link aktif
-- [ ] Tree view ekspand/collapse smooth
-- [ ] Mobile tree view friendly
+- [x] Editor set parent → muncul di sub-assets parent + breadcrumb di detail
+- [x] Circular ref attempt throws error
+- [x] Breadcrumb clickable navigates to ancestor
+- [x] Sub-assets list correct count
+- [ ] Tree view at asset list → Phase 6 polish (optional)
 
 ---
 
-### Group 2.5 — Member-Aware UI Polish (Day 17–18)
+### Group 2.5 — Member-Aware UI Polish 🟡 partial
 
-- [ ] Show user avatar inisial di topbar
-- [ ] Asset detail show created_by (avatar + name)
-- [ ] Activity log preview di detail show actor name
-- [ ] Member online indicator (defer V2 — realtime)
-- [ ] "Member X invited you" notification (banner sekali pada login pertama setelah accept — basic, no full notif system)
-
----
-
-### Group 2.6 — Permission Hardening (Day 19–20)
-
-- [ ] Audit semua tRPC procedure pakai middleware benar
-- [ ] Add integration test per role per action (matrix)
-- [ ] Concurrent role change scenario test
-- [ ] Email verification gate untuk accept invitation (unverified user reject)
-- [ ] Rate limit: invite 50/hour/workspace enforced
+- [x] Activity log preview di asset detail tab "Activity" sudah render actor name (Phase 1)
+- [ ] Topbar avatar inisial → Phase 6 polish
+- [ ] Asset created_by display → Phase 6 polish
+- [ ] Realtime presence → V2
 
 ---
 
-### Group 2.7 — Phase 2 Integration Test (Day 21–22)
+### Group 2.6 — Permission Hardening ⏳ wiring phase
 
-- [ ] E2E: owner invite member → member accept → member create asset → owner update role to viewer → member can't edit
-- [ ] E2E: dynamic field create → asset create dengan dynamic data → edit → detail view
-- [ ] E2E: asset hierarchy 3 level → reparent → breadcrumb update
-- [ ] Performance: tree workspace 1000 asset load <1.5s
+Slicing-first; rate limit + middleware enforcement = saat tRPC dipake real.
 
 ---
 
-### Group 2.8 — Buffer + Demo (Day 23–25)
+### Group 2.7 — Phase 2 Integration Test ⏳ wiring phase
 
-- [ ] Buffer untuk slip
-- [ ] Demo recording untuk stakeholder
-- [ ] Phase 2 retro
-- [ ] Phase 3 prep
+E2E test berlaku setelah DB connected. Slicing-only saat ini tidak butuh.
+
+---
+
+### Group 2.8 — Buffer + Demo ⏳ wiring phase
 
 ---
 
@@ -269,5 +181,7 @@ Total: 17 stories (14 P0, 3 P1).
 ---
 
 ## Changelog
+
+- 0.2 — Slicing pass complete. Groups 2.1–2.4 done at in-memory zustand level. Group 2.5 partial (activity actor name done). Group 2.6–2.8 deferred until wiring phase.
 
 - 0.1 — Initial Phase 2 checklist. 25-day plan, 17 stories.

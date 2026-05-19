@@ -25,6 +25,14 @@ export const deleteWorkspaceSchema = z.object({
   confirm: z.string().min(1, 'Type the workspace name to confirm'),
 });
 
+export const inviteMemberSchema = z.object({
+  workspaceId: z.string().min(1),
+  email: z.string().email(),
+  role: z.enum(['editor', 'viewer']),
+  customMessage: z.string().max(500).optional(),
+});
+
 export type CreateWorkspaceInput = z.infer<typeof createWorkspaceSchema>;
 export type UpdateWorkspaceInput = z.infer<typeof updateWorkspaceSchema>;
 export type DeleteWorkspaceInput = z.infer<typeof deleteWorkspaceSchema>;
+export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;

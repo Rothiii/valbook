@@ -7,7 +7,9 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { useSession } from '@/src/features/auth/hooks/use-session';
+import { DynamicFields } from '@/src/features/category/components/dynamic-fields';
 import { useCategories } from '@/src/features/category/hooks/use-categories';
+import { useCategoryFields } from '@/src/features/category/hooks/use-fields';
 import { useOwnerLabels } from '@/src/features/owner-label/hooks/use-owner-labels';
 import type { Workspace } from '@/src/features/workspace/types';
 import { Button } from '@/src/shared/ui/button';
@@ -29,7 +31,7 @@ import {
 } from '@/src/shared/ui/select';
 import { Textarea } from '@/src/shared/ui/textarea';
 
-import { useAssetActions } from '../hooks/use-assets';
+import { useAssetActions, useAssets } from '../hooks/use-assets';
 import { type CreateAssetInput, createAssetSchema } from '../schema';
 import type { Asset } from '../types';
 
@@ -45,6 +47,7 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
   const owners = useOwnerLabels(workspace.id);
   const { createAsset, updateAsset } = useAssetActions();
   const [pending, setPending] = useState(false);
+  const [customFieldErrors, setCustomFieldErrors] = useState<Record<string, string>>({});
 
   const form = useForm<CreateAssetInput>({
     resolver: zodResolver(createAssetSchema),
@@ -67,9 +70,66 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
     },
   });
 
+  const watchedCategoryId = form.watch('categoryId') ?? null;
+  const watchedCustomFields = form.watch('customFields') ?? {};
+  const dynamicFields = useCategoryFields(watchedCategoryId);
+  const allAssets = useAssets(workspace.id, { includeArchived: true });
+  const candidateParents = allAssets.filter((a) => {
+    if (!asset) return true;
+    if (a.id === asset.id) return false;
+    let current: string | null = a.parentAssetId;
+    const visited = new Set<string>();
+    while (current && !visited.has(current)) {
+      if (current === asset.id) return false;
+      visited.add(current);
+      const p = allAssets.find((x) => x.id === current);
+      current = p ? p.parentAssetId : null;
+    }
+    return true;
+  });
+
+  function validateCustomFields(values: Record<string, unknown>): Record<string, string> {
+    const errors: Record<string, string> = {};
+    for (const field of dynamicFields) {
+      const raw = values[field.key];
+      const present =
+        raw != null &&
+        !(typeof raw === 'string' && raw.trim() === '') &&
+        !(Array.isArray(raw) && raw.length === 0);
+      if (field.required && !present) {
+        errors[field.key] = `${field.label} is required`;
+      }
+      if (present) {
+        if (field.type === 'number' || field.type === 'currency') {
+          const n = Number.parseFloat(String(raw));
+          if (Number.isNaN(n)) errors[field.key] = `${field.label} must be a number`;
+        }
+        if (
+          field.type === 'select' &&
+          field.options &&
+          typeof raw === 'string' &&
+          !field.options.includes(raw)
+        ) {
+          errors[field.key] = `Invalid option for ${field.label}`;
+        }
+        if (field.type === 'multi_select' && field.options && Array.isArray(raw)) {
+          const bad = (raw as string[]).find((v) => !field.options?.includes(v));
+          if (bad) errors[field.key] = `Invalid option for ${field.label}`;
+        }
+      }
+    }
+    return errors;
+  }
+
   function onSubmit(values: CreateAssetInput) {
     if (!user) {
       toast.error('You must be logged in.');
+      return;
+    }
+    const cfErrors = validateCustomFields(values.customFields ?? {});
+    setCustomFieldErrors(cfErrors);
+    if (Object.keys(cfErrors).length > 0) {
+      toast.error('Custom fields have errors');
       return;
     }
     setPending(true);
@@ -179,6 +239,38 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
           />
           <FormField
             control={form.control}
+            name="parentAssetId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Parent asset</FormLabel>
+                <Select
+                  value={field.value ?? '__none'}
+                  onValueChange={(v) => field.onChange(v === '__none' ? null : v)}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="No parent" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="__none">No parent (root)</SelectItem>
+                    {candidateParents.length === 0 ? (
+                      <div className="p-2 text-xs text-muted-foreground">No candidates</div>
+                    ) : (
+                      candidateParents.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="location"
             render={({ field }) => (
               <FormItem>
@@ -268,6 +360,25 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
             )}
           />
         </section>
+
+        {watchedCategoryId ? (
+          <section className="border-t border-border pt-6">
+            <h3 className="mb-3 text-sm uppercase tracking-wider text-muted-foreground">
+              Custom fields
+            </h3>
+            <DynamicFields
+              categoryId={watchedCategoryId}
+              values={watchedCustomFields}
+              errors={customFieldErrors}
+              onChange={(next) => {
+                form.setValue('customFields', next, { shouldDirty: true });
+                if (Object.keys(customFieldErrors).length > 0) {
+                  setCustomFieldErrors({});
+                }
+              }}
+            />
+          </section>
+        ) : null}
 
         <FormField
           control={form.control}

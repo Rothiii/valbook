@@ -2,9 +2,20 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.1
+Version: 0.2
 Source: [mvp-stories.md](mvp-stories.md), [api-design.md](api-design.md)
 Window: **Week 13–14** (10 working days)
+
+## Status: 🟡 Slicing complete (in-memory)
+
+Slicing-first workflow. Backend wiring deferred.
+
+- ✅ Group 3.1 Valuation entry (CRUD + activity log + auto-update asset current value)
+- ✅ Group 3.2 Valuation chart (recharts Line chart, needs ≥2 entries)
+- ✅ Group 3.3 CSV bulk import (papaparse + preview + validate per row)
+- 🟡 Group 3.4 Currency rate backend (in-memory rates store with builtin seed + manual upsert; no cron)
+- ✅ Group 3.5 Dashboard aggregation (converted total via display currency + unsupported warning)
+- 🟡 Group 3.6 Currency display settings (display_currency editable di workspace settings — Phase 1 done; per-asset toggle defer)
 
 ---
 

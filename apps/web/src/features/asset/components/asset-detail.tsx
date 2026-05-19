@@ -9,6 +9,8 @@ import { useSession } from '@/src/features/auth/hooks/use-session';
 import { useCategory } from '@/src/features/category/hooks/use-categories';
 import { useCategoryFields } from '@/src/features/category/hooks/use-fields';
 import { useOwnerLabel } from '@/src/features/owner-label/hooks/use-owner-labels';
+import { ValuationTab } from '@/src/features/valuation/components/valuation-tab';
+import { useWorkspaceBySlug } from '@/src/features/workspace/hooks/use-workspaces';
 import { Badge } from '@/src/shared/ui/badge';
 import { Button } from '@/src/shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/shared/ui/card';
@@ -30,6 +32,7 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
   const owner = useOwnerLabel(asset.ownerLabelId);
   const children = useAssetChildren(asset.id);
   const ancestors = useAssetAncestors(asset);
+  const workspace = useWorkspaceBySlug(workspaceSlug);
   const { archiveAsset, unarchiveAsset, deleteAsset } = useAssetActions();
 
   function handleArchiveToggle() {
@@ -188,7 +191,10 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
           ) : null}
         </TabsContent>
         <TabsContent value="valuation" className="mt-4">
-          <p className="text-sm text-muted-foreground">Valuation history (Phase 3).</p>
+          <ValuationTab
+            asset={asset}
+            defaultCurrency={workspace?.displayCurrency ?? asset.currentCurrency ?? 'IDR'}
+          />
         </TabsContent>
         <TabsContent value="attachments" className="mt-4">
           <p className="text-sm text-muted-foreground">Attachments (Phase 4).</p>

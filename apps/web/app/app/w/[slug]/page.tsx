@@ -7,6 +7,7 @@ import { use } from 'react';
 import { ActivityFeed } from '@/src/features/activity/components/activity-feed';
 import { useAssetStats } from '@/src/features/asset/hooks/use-asset-stats';
 import { useCategories } from '@/src/features/category/hooks/use-categories';
+import { useConvert } from '@/src/features/currency/hooks/use-currency';
 import { useOwnerLabels } from '@/src/features/owner-label/hooks/use-owner-labels';
 import { useWorkspaceBySlug } from '@/src/features/workspace/hooks/use-workspaces';
 import { Button } from '@/src/shared/ui/button';
@@ -26,6 +27,15 @@ export default function DashboardPage({ params }: { params: Promise<{ slug: stri
   const ownerMap = new Map(owners.map((o) => [o.id, o]));
 
   const totalValueEntries = Object.entries(stats.totalValueByCurrency);
+  const convert = useConvert();
+  const display = workspace.displayCurrency;
+  const unsupported: string[] = [];
+  let convertedTotal = 0;
+  for (const [cur, amt] of totalValueEntries) {
+    const v = convert(amt, cur, display);
+    if (v === null) unsupported.push(cur);
+    else convertedTotal += v;
+  }
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -50,13 +60,23 @@ export default function DashboardPage({ params }: { params: Promise<{ slug: stri
             {totalValueEntries.length === 0 ? (
               <p className="text-2xl">—</p>
             ) : (
-              <ul className="space-y-1">
-                {totalValueEntries.map(([currency, total]) => (
-                  <li key={currency} className="text-2xl">
-                    {currency} {total.toLocaleString()}
-                  </li>
-                ))}
-              </ul>
+              <>
+                <p className="text-2xl">
+                  {display} {convertedTotal.toLocaleString()}
+                </p>
+                <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                  {totalValueEntries.map(([currency, total]) => (
+                    <li key={currency}>
+                      {currency} {total.toLocaleString()}
+                    </li>
+                  ))}
+                </ul>
+                {unsupported.length > 0 ? (
+                  <p className="mt-2 text-xs text-destructive">
+                    Missing rate for {unsupported.join(', ')}
+                  </p>
+                ) : null}
+              </>
             )}
           </CardContent>
         </Card>

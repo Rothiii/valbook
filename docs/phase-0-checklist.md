@@ -2,9 +2,36 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.2
+Version: 0.3
 Source: [tech-stack.md](tech-stack.md) section 15
 Target window: **Week 1–2** (10 working days)
+
+---
+
+## Status Summary
+
+| Step | Status | Note |
+|---|---|---|
+| Pre-flight | 🟡 partial | GitHub + local env ✅, akun eksternal user TODO |
+| 1. Repo + pnpm workspace | ✅ done | |
+| 2. Next.js + TS | ✅ done | Next.js 16.2.6 (bukan 15, latest stable saat init) |
+| 3. Biome + lefthook | ✅ done | Biome 2.4.15 |
+| 4. Tailwind + shadcn/ui | 🟡 partial | `form` component belum ke-install |
+| 5. Drizzle + Neon | 🟡 scaffold | Client + aggregator skeleton; butuh `DATABASE_URL` untuk migrate |
+| 6. better-auth | 🟡 scaffold | Config + email handler wired; butuh DB untuk generate tables |
+| 7. tRPC v11 | ✅ done | Root router, middleware base, provider wired |
+| 8. Zod schemas | 🟡 partial | Zod installed; common types + per-feature schemas Phase 1+ |
+| 9. R2 client | 🟡 scaffold | Helper functions ready; butuh creds untuk test |
+| 10. Resend + emails | ✅ done | Client + 3 templates (verify, reset, invitation) |
+| 11. Upstash Redis | 🟡 scaffold | Rate limit + cache ready; butuh creds untuk test |
+| 12. Sentry | 🟡 scaffold | Init no-op tanpa DSN |
+| 13. Vercel project | ⏳ pending | User-driven setup |
+| 14. GitHub Actions CI | ✅ done | Lint + typecheck + build green |
+| 15. Seed data | ⏳ pending | Butuh DB + workspace_templates schema (Phase 1) |
+| 16. Cron job | ✅ stub | Route + vercel.json wired; logic Phase 3 |
+| 17. First E2E flow | ⏳ pending | Slicing UI berikutnya; data wiring butuh DB |
+
+Legend: ✅ done · 🟡 scaffolded (butuh credentials atau dependency) · ⏳ pending
 
 ---
 
@@ -16,360 +43,317 @@ Phase 0 = setup tanpa fitur user-facing. Output: skeleton project ready untuk Ph
 
 ## Pre-flight (Day 0)
 
-Setup akun sebelum mulai code:
+Setup akun sebelum mulai code. Lihat [../SETUP.md](../SETUP.md) untuk step-by-step.
 
-- [ ] **GitHub repo** — create private repo `asset-workspace`
+- [x] **GitHub repo** — https://github.com/Rothiii/valbook
 - [ ] **Vercel account** — connect ke GitHub
-- [ ] **Neon account** — create project `asset-workspace`, get connection string (prod + dev branch)
-- [ ] **Cloudflare R2** — create account, create bucket `asset-workspace-dev` + `asset-workspace-prod`, generate API token
-- [ ] **Resend account** — generate API key, plan domain verification
-- [ ] **Upstash account** — create Redis DB `asset-workspace`
-- [ ] **Sentry account** — create project `asset-workspace-web`, get DSN
-- [ ] **Domain** (opsional Phase 0) — punya domain untuk email + Vercel custom domain
-- [ ] **Local env** — Node 22 LTS installed, pnpm 9+ installed
+- [ ] **Neon account** — create project `valbook`, get connection string
+- [ ] **Cloudflare R2** — create account, buckets `valbook-dev` + `valbook-prod`, API token
+- [ ] **Resend account** — API key + domain verification
+- [ ] **Upstash account** — Redis REST URL + token
+- [ ] **Sentry account** — project `valbook-web`, DSN
+- [ ] **Domain** (optional Phase 0)
+- [x] **Local env** — Node 22 LTS, pnpm 10
 
 ---
 
-## Step 1: Repo + pnpm workspace
+## Step 1: Repo + pnpm workspace ✅
 
 **Goal**: monorepo struktur siap dengan pnpm.
 
-```bash
-mkdir asset-workspace && cd asset-workspace
-pnpm init
-mkdir apps && cd apps
-```
-
 **Files**:
-- `pnpm-workspace.yaml`: list packages folder
-- `package.json` (root): minimal scripts
-- `.gitignore`: node_modules, .next, .env, drizzle/migrations/*.sql temp
-- `.npmrc`: `auto-install-peers=true`
+- `pnpm-workspace.yaml`
+- `package.json` (root)
+- `.gitignore`
+- `.npmrc`
 
 **Acceptance**:
-- [ ] `pnpm install` jalan tanpa error
-- [ ] Folder struktur: `apps/web/`, `pnpm-workspace.yaml` ada
-- [ ] Git initialized, `.gitignore` proper
+- [x] `pnpm install` jalan tanpa error
+- [x] Folder struktur: `apps/web/`, `pnpm-workspace.yaml` ada
+- [x] Git initialized, `.gitignore` proper
 
-**Est**: 30 min
+**Est**: 30 min · **Actual**: done
 
 ---
 
-## Step 2: Next.js 15 + TypeScript
+## Step 2: Next.js + TypeScript ✅
 
 **Goal**: Next.js app router siap.
 
-```bash
-cd apps && pnpm create next-app@latest web --typescript --tailwind --app --no-src-dir --import-alias "@/*"
-```
-
-Adjust setelah:
-- Pindahkan `app/`, `public/` ke struktur final
-- Buat `src/` folder dan adjust paths
+**Catatan**: Next.js 16.2.6 (latest stable saat init) bukan 15 seperti rencana awal. Compatible dengan Tailwind v4 + React Compiler.
 
 **Files**:
-- `apps/web/tsconfig.json` — strict mode true
-- `apps/web/next.config.ts` — typed routes enabled, experimental.reactCompiler
+- `apps/web/tsconfig.json` — strict mode + noUncheckedIndexedAccess
+- `apps/web/next.config.ts` — typed routes + reactCompiler
 
 **Acceptance**:
-- [ ] `pnpm dev` jalan, akses localhost:3000 tampil default page
-- [ ] `pnpm build` sukses
-- [ ] TypeScript strict mode aktif (`strict: true`)
-- [ ] Typed routes aktif
+- [x] `pnpm dev` jalan
+- [x] `pnpm build` sukses
+- [x] TypeScript strict mode aktif
+- [x] Typed routes aktif
 
-**Est**: 1 hour
+**Est**: 1 hour · **Actual**: done
 
 ---
 
-## Step 3: Biome + lefthook
+## Step 3: Biome + lefthook ✅
 
 **Goal**: linter + formatter + git hooks.
 
-```bash
-pnpm add -D -w @biomejs/biome lefthook
-pnpm biome init
-pnpm lefthook install
-```
-
 **Files**:
-- `biome.json` — TypeScript + React preset, 2-space indent, single quote
-- `lefthook.yml` — pre-commit: biome check + tsc
+- `biome.json` — Biome 2.4.15 config
+- `lefthook.yml` — pre-commit (biome + typecheck), pre-push (test stub)
 
 **Acceptance**:
-- [ ] `pnpm biome check .` jalan tanpa error
-- [ ] Git commit memicu pre-commit hook
-- [ ] `pnpm biome format --write .` formatting bekerja
-- [ ] Hapus ESLint dari Next.js default (uninstall + remove config)
+- [x] `pnpm lint` jalan tanpa error
+- [x] Git commit memicu pre-commit hook
+- [x] `pnpm format` working
+- [x] ESLint removed (replaced by Biome)
 
-**Est**: 1 hour
+**Est**: 1 hour · **Actual**: done
 
 ---
 
-## Step 4: Tailwind v4 + shadcn/ui
+## Step 4: Tailwind v4 + shadcn/ui 🟡
 
 **Goal**: styling system + component primitives.
 
-```bash
-cd apps/web
-pnpm dlx shadcn@latest init --defaults --base radix
-pnpm dlx shadcn@latest add button card input label form dialog dropdown-menu badge table tabs sonner select textarea checkbox separator skeleton sheet
-```
+**Files**:
+- `apps/web/src/shared/ui/` — shadcn components
+- `apps/web/src/shared/utils/cn.ts`
+- `apps/web/app/globals.css` — monochrome palette + Geist Mono
+- `apps/web/components.json` — aliases `@/src/shared/ui` + `@/src/shared/utils/cn`
 
-**Files** (post-restructure ke clean architecture):
-- `apps/web/src/shared/ui/` — shadcn components (moved dari `components/ui/`)
-- `apps/web/src/shared/utils/cn.ts` — cn helper (moved dari `lib/utils.ts`)
-- `apps/web/app/globals.css` — Tailwind v4 + CSS vars
-- `apps/web/components.json` — aliases pointing ke `@/src/shared/ui` + `@/src/shared/utils/cn`
+**Installed components**:
+button, card, input, label, dialog, dropdown-menu, badge, table, tabs, sonner, select, textarea, checkbox, separator, skeleton, sheet
 
 **Acceptance**:
-- [ ] Tampil Button shadcn di home page test
-- [ ] Dark mode toggle bekerja (CSS variable + class strategy)
-- [ ] `cn()` utility tersedia
-- [ ] Tailwind v4 + PostCSS config benar
+- [x] Shadcn Button render di home page
+- [x] Tailwind v4 + PostCSS config benar
+- [x] `cn()` utility tersedia
+- [x] Dark mode CSS variables defined
+- [ ] **TODO**: `form` component belum installed (ada dependency react-hook-form + @hookform/resolvers)
+- [ ] **TODO**: ThemeProvider untuk toggle dark mode (next-themes)
 
-**Est**: 2 hours
+**Est**: 2 hours · **Actual**: ~3 hours (palette + monochrome theme)
 
 ---
 
-## Step 5: Drizzle + Neon
+## Step 5: Drizzle + Neon 🟡
 
 **Goal**: ORM + database connection.
 
-```bash
-pnpm add drizzle-orm @neondatabase/serverless
-pnpm add -D drizzle-kit
-```
+**Files**:
+- `apps/web/src/server/db.ts` — Neon HTTP client + Drizzle init + schema aggregator
+- `apps/web/drizzle.config.ts` — drizzle-kit config
+- `apps/web/.env.example` — DATABASE_URL placeholder
 
-**Files** (feature-first — Drizzle table per feature):
-- `apps/web/src/server/db.ts` — Neon HTTP client + Drizzle init + **schema aggregator** (import + re-export semua feature db)
-- `apps/web/drizzle.config.ts` — drizzle-kit config pointing ke `src/server/db.ts`
-- `apps/web/.env.local` — DATABASE_URL
-
-**Per-feature DB tables** (di `src/features/<name>/server/db.ts`):
-- `features/auth/` — handled by better-auth (Step 6)
-- `features/workspace/server/db.ts` — workspaces, workspace_members, workspace_invitations, workspace_templates
-- `features/category/server/db.ts` — categories, category_fields
-- `features/owner-label/server/db.ts` — owner_labels
-- `features/tag/server/db.ts` — tags
-- `features/asset/server/db.ts` — assets, asset_tags
-- `features/valuation/server/db.ts` — valuation_history
-- `features/transaction/server/db.ts` — transactions (V2, defined but not migrated)
-- `features/attachment/server/db.ts` — attachments
-- `features/activity/server/db.ts` — activity_logs
-- `features/sharing/server/db.ts` — public_shares
-- `features/currency/server/db.ts` — currencies, exchange_rates
+**Per-feature DB tables** (akan dibuat Phase 1+):
+- `features/auth/server/db.ts` — better-auth-generated tables
+- `features/workspace/server/db.ts`
+- `features/category/server/db.ts`
+- `features/owner-label/server/db.ts`
+- `features/tag/server/db.ts`
+- `features/asset/server/db.ts`
+- `features/valuation/server/db.ts`
+- `features/transaction/server/db.ts` (V2)
+- `features/attachment/server/db.ts`
+- `features/activity/server/db.ts`
+- `features/sharing/server/db.ts`
+- `features/currency/server/db.ts`
 
 **Acceptance**:
-- [ ] `pnpm drizzle-kit generate` produces migration file
-- [ ] `pnpm drizzle-kit push` apply to Neon dev branch sukses
-- [ ] Connect via `select 1` test query sukses
-- [ ] All FK constraints aktif
-- [ ] Indexes section 5 ERD created (manual SQL kalau perlu)
-- [ ] GIN index custom_fields, name trigram aktif
+- [x] `drizzle-kit` scripts wired (`db:generate`, `db:push`, `db:migrate`, `db:studio`)
+- [x] `src/server/db.ts` aggregator skeleton
+- [ ] **Pending DATABASE_URL**: `drizzle-kit generate` produces migration file
+- [ ] **Pending DATABASE_URL**: `drizzle-kit push` apply ke Neon
+- [ ] **Pending DATABASE_URL**: `select 1` test query sukses
+- [ ] **Phase 1+**: All FK constraints aktif setelah feature schemas ada
+- [ ] **Phase 1+**: Indexes ERD section 5 created
+- [ ] **Phase 1+**: GIN index custom_fields, name trigram aktif
 
-**Est**: 1 day (8 hours) — paling berat karena translate ERD ke Drizzle schema
+**Est**: 1 day · **Actual**: scaffold done; full implementation Phase 1+
 
 ---
 
-## Step 6: better-auth
+## Step 6: better-auth 🟡
 
 **Goal**: auth integration.
 
-```bash
-pnpm add better-auth
-```
-
 **Files**:
-- `apps/web/src/server/auth.ts` — better-auth config
+- `apps/web/src/server/auth.ts` — better-auth config + Drizzle adapter + email hooks
 - `apps/web/app/api/auth/[...all]/route.ts` — handler
 - `apps/web/src/shared/lib/auth-client.ts` — client SDK
 
-**Config**:
-- Database adapter: Drizzle
-- Email + password provider aktif
-- Email verification required
-- Session strategy: database
-- Additional fields user: `name`, `avatar_url`
+**Config done**:
+- [x] Drizzle adapter dengan `provider: 'pg'`
+- [x] Email + password provider aktif
+- [x] Email verification required
+- [x] Session strategy: database, 7 hari, cookie cache 5 min
+- [x] Additional field user: `avatar_url`
+- [x] `sendVerificationEmail` + `sendResetPassword` wired ke Resend
 
 **Acceptance**:
-- [ ] `pnpm drizzle-kit push` apply better-auth tables (user, session, account, verification)
-- [ ] Register endpoint return user
-- [ ] Login + session cookie set
-- [ ] Email verification token generated (skip send dulu sampai step 11)
-- [ ] Session callback inject user.id ke context
+- [x] Config scaffolded + email hooks wired
+- [ ] **Pending DATABASE_URL**: run `pnpm dlx @better-auth/cli generate --output src/features/auth/server/db.ts` untuk generate tables
+- [ ] **Pending DATABASE_URL**: `drizzle-kit push` apply better-auth tables
+- [ ] **Pending**: Register endpoint return user (butuh DB)
+- [ ] **Pending**: Login + session cookie set (butuh DB)
+- [ ] **Pending**: Email verification token generated + email terkirim
+- [ ] **Pending**: Session callback inject user.id ke tRPC context
 
-**Est**: 4 hours
+**Est**: 4 hours · **Actual**: scaffold done; verification butuh DB
 
 ---
 
-## Step 7: tRPC v11 boilerplate
+## Step 7: tRPC v11 ✅
 
 **Goal**: type-safe RPC.
 
-```bash
-pnpm add @trpc/server @trpc/client @trpc/react-query @tanstack/react-query
-pnpm add superjson zod
-```
-
 **Files**:
-- `apps/web/src/server/trpc.ts` — tRPC instance + context + middleware (`protectedProcedure`, `workspaceProcedure`, `editorProcedure`, `ownerProcedure`) + **root router aggregator**
+- `apps/web/src/server/trpc.ts` — instance + context + middleware base + root router
 - `apps/web/app/api/trpc/[trpc]/route.ts` — handler
 - `apps/web/src/shared/lib/trpc-client.ts` — React Query client
-- `apps/web/src/shared/lib/trpc-provider.tsx` — provider
+- `apps/web/src/shared/lib/trpc-provider.tsx` — provider (wired di RootLayout)
 
-**Middleware** (per permission-matrix section 5.1):
-- `protectedProcedure` — require session
-- `workspaceProcedure(slug)` — inject `{ workspace, member, role }`
-- `editorProcedure` — role >= editor
-- `ownerProcedure` — role === owner
+**Middleware**:
+- [x] `publicProcedure` — no auth
+- [x] `protectedProcedure` — require session
+- [ ] **Phase 1+**: `workspaceProcedure(slug)` — inject `{ workspace, member, role }`
+- [ ] **Phase 1+**: `editorProcedure` — role >= editor
+- [ ] **Phase 1+**: `ownerProcedure` — role === owner
 
 **Acceptance**:
-- [ ] Sample query (`hello.world`) callable dari client
-- [ ] Error formatting custom shaper bekerja
-- [ ] Session injected ke context
-- [ ] `workspaceProcedure` reject kalau non-member
+- [x] Error formatting custom shaper bekerja (Zod error inject)
+- [x] Session injected ke context
+- [x] Build tanpa error
+- [ ] **Phase 1+**: Sample query callable dari client (akan dibuat saat feature pertama)
 
-**Est**: 4 hours
+**Est**: 4 hours · **Actual**: done
 
 ---
 
-## Step 8: Zod schemas (per-feature)
+## Step 8: Zod schemas 🟡
 
 **Goal**: shared validation.
 
-**Files** (feature-first — schema per feature):
-- `apps/web/src/features/<name>/schema.ts` (per feature, defined when feature built Phase 1+)
-- `apps/web/src/shared/types/common.ts` — currency, id, slug, role enums + zod helpers
+**Files**:
+- [x] Zod installed
+- [ ] `apps/web/src/shared/types/common.ts` — currency, id, slug, role enums (deferred ke Phase 1)
+- [ ] Per-feature `schema.ts` (Phase 1+)
 
 **Acceptance**:
-- [ ] Each feature punya `create*Schema`, `update*Schema` ketika built
-- [ ] Schema sharable client + server (no server-only deps di schema.ts)
-- [ ] Custom error messages bahasa Indonesia (atau later i18n)
-- [ ] Common shared types tersedia di shared/types
+- [x] Zod tersedia di client + server
+- [ ] **Phase 1+**: Common types tersedia di shared/types
+- [ ] **Phase 1+**: Each feature punya `create*Schema`, `update*Schema`
 
-**Est**: 2 hours (setup common only — feature schemas built per-phase)
+**Est**: 2 hours · **Actual**: 30 min (install only)
 
 ---
 
-## Step 9: R2 client
+## Step 9: R2 client 🟡
 
 **Goal**: object storage signed URL.
 
-```bash
-pnpm add @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
-```
-
 **Files**:
-- `apps/web/src/shared/lib/r2.ts` — S3-compat client + helper
+- `apps/web/src/shared/lib/r2.ts` — S3 client + helpers
 
 **Functions**:
-- `getUploadUrl({ key, contentType, sizeBytes })` — return presigned PUT URL (10 min expiry)
-- `getDownloadUrl({ key })` — return presigned GET URL (5 min expiry)
-- `deleteObject({ key })`
+- [x] `getUploadUrl({ key, contentType, sizeBytes })` — 10 min expiry
+- [x] `getDownloadUrl(key)` — 5 min expiry
+- [x] `deleteObject(key)`
+- [x] Mime allowlist (image, pdf, doc, xls, csv, txt)
+- [x] Max file size 25MB
 
 **Acceptance**:
-- [ ] Generate upload URL test bekerja
-- [ ] PUT file via curl sukses
-- [ ] GET via signed URL sukses, expire 5 min later
-- [ ] Bucket policy private (no public access)
+- [x] Helpers exported + typed
+- [ ] **Pending R2 creds**: PUT file via curl sukses
+- [ ] **Pending R2 creds**: GET via signed URL sukses, expire 5 min later
+- [ ] **Pending R2 setup**: Bucket CORS configured
 
-**Est**: 3 hours
+**Est**: 3 hours · **Actual**: scaffold done
 
 ---
 
-## Step 10: Resend + React Email
+## Step 10: Resend + React Email ✅
 
 **Goal**: email send setup.
 
-```bash
-pnpm add resend
-pnpm add -D @react-email/components @react-email/render
-```
-
 **Files**:
-- `apps/web/src/shared/lib/email.ts` — Resend client + send helper
-- `apps/web/src/emails/verify-email.tsx` — template
-- `apps/web/src/emails/invitation.tsx` — template
-- `apps/web/src/emails/password-reset.tsx` — template
+- [x] `apps/web/src/shared/lib/email.ts` — Resend client + `sendEmail` helper
+- [x] `apps/web/src/emails/verify-email.tsx`
+- [x] `apps/web/src/emails/invitation.tsx`
+- [x] `apps/web/src/emails/password-reset.tsx`
 
 **Acceptance**:
-- [ ] Send test email ke email diri sendiri sukses
-- [ ] Template render HTML benar (preview di dev mode)
-- [ ] Domain verification + DKIM setup di Resend dashboard
-- [ ] Connect ke better-auth email hook (verify + reset)
+- [x] Template render HTML + plaintext
+- [x] Wired ke better-auth email hooks
+- [ ] **Pending Resend creds**: send test email sukses
+- [ ] **Pending production**: domain verification + DKIM
 
-**Est**: 4 hours
+**Est**: 4 hours · **Actual**: done
 
 ---
 
-## Step 11: Upstash Redis
+## Step 11: Upstash Redis 🟡
 
 **Goal**: rate limit + cache.
 
-```bash
-pnpm add @upstash/redis @upstash/ratelimit
-```
-
 **Files**:
-- `apps/web/src/shared/lib/redis.ts` — Upstash client
-- `apps/web/src/shared/lib/rate-limit.ts` — ratelimit configs per endpoint (sesuai api-design section 8)
-- `apps/web/src/shared/lib/cache.ts` — cache helper (get/set/invalidate)
+- [x] `apps/web/src/shared/lib/redis.ts` — Upstash client
+- [x] `apps/web/src/shared/lib/rate-limit.ts` — 8 rate limit configs
+- [x] `apps/web/src/shared/lib/cache.ts` — get/set/invalidate/orFetch
 
-**Rate limit configs**:
-- signUp: 5/hour/IP
-- signIn: 10/15min/IP
-- shareCreate: 10/hour/workspace
-- inviteMember: 50/hour/workspace
-- attachmentUpload: 100/hour/user
-- valuationBulkImport: 5/hour/workspace
-- publicShareView: 100/min/IP
-- default: 1000/15min/user
+**Rate limit configs** (per api-design.md section 8):
+- [x] signUp (5/hour/IP), signIn (10/15min/IP)
+- [x] shareCreate (10/hour/workspace), inviteMember (50/hour/workspace)
+- [x] attachmentUpload (100/hour/user), valuationBulkImport (5/hour/workspace)
+- [x] publicShareView (100/min/IP), default (1000/15min/user)
 
 **Acceptance**:
-- [ ] Rate limit middleware bekerja di tRPC + REST
-- [ ] Cache hit/miss tracked
-- [ ] Redis connection sukses dari serverless
+- [x] Configs typed + exported
+- [ ] **Pending Upstash creds**: Redis connection sukses dari serverless
+- [ ] **Phase 1+**: Rate limit middleware wired di tRPC procedure pertama
+- [ ] **Phase 3+**: Cache hit/miss tracked di dashboard
 
-**Est**: 3 hours
+**Est**: 3 hours · **Actual**: scaffold done
 
 ---
 
-## Step 12: Sentry SDK
+## Step 12: Sentry SDK 🟡
 
 **Goal**: error monitoring.
 
-```bash
-pnpm dlx @sentry/wizard@latest -i nextjs
-```
-
 **Files**:
-- `apps/web/sentry.client.config.ts`
-- `apps/web/sentry.server.config.ts`
-- `apps/web/sentry.edge.config.ts`
-- `apps/web/instrumentation.ts`
+- [x] `apps/web/sentry.client.config.ts`
+- [x] `apps/web/sentry.server.config.ts`
+- [x] `apps/web/sentry.edge.config.ts`
+- [x] `apps/web/instrumentation.ts` (with onRequestError export)
 
 **Config**:
-- Sampling: 100% error, 10% transactions
-- Source map upload di CI (auth token via env)
-- Release tracking dari git SHA
+- [x] No-op kalau DSN tidak set (dev local quiet)
+- [x] Sampling: 10% transactions, 100% errors
+- [ ] **Phase 6**: Source map upload di CI (butuh auth token)
+- [ ] **Phase 6**: Release tracking dari git SHA
 
 **Acceptance**:
-- [ ] Test exception capture muncul di Sentry dashboard
-- [ ] Source map upload bekerja di production build
-- [ ] Performance trace tampil
+- [x] Init guarded by DSN presence
+- [ ] **Pending Sentry creds**: test exception capture muncul di dashboard
 
-**Est**: 2 hours
+**Est**: 2 hours · **Actual**: scaffold done
 
 ---
 
-## Step 13: Vercel project + env
+## Step 13: Vercel project + env ⏳
 
 **Goal**: deploy preview.
 
+User-driven setup (lihat SETUP.md section 3.8):
+
 - [ ] Create Vercel project, connect repo
 - [ ] Set root dir: `apps/web`
-- [ ] Set build command: `cd ../.. && pnpm install && pnpm --filter web build`
-- [ ] Add all env vars dari tech-stack.md section 6
+- [ ] Set build command sesuai SETUP.md
+- [ ] Add semua env vars dari .env.example
 - [ ] Setup Neon branch creation pada preview deploy
 - [ ] Connect domain (kalau ada)
 
@@ -379,189 +363,165 @@ pnpm dlx @sentry/wizard@latest -i nextjs
 - [ ] Env var aktif di production
 - [ ] Vercel Analytics aktif
 
-**Est**: 2 hours
+**Est**: 2 hours · **Status**: pending user setup
 
 ---
 
-## Step 14: GitHub Actions CI
+## Step 14: GitHub Actions CI ✅
 
 **Goal**: pre-merge gates.
 
 **Files**:
-- `.github/workflows/ci.yml`
+- [x] `.github/workflows/ci.yml`
 
 **Steps**:
-1. Checkout
-2. Setup Node 22 + pnpm
-3. Install (cache)
-4. Biome check
-5. tsc --noEmit
-6. Vitest run
-7. Build
+1. [x] Checkout
+2. [x] Setup Node 22 + pnpm 10
+3. [x] Install (cache via pnpm-action-setup)
+4. [x] Biome check
+5. [x] tsc --noEmit
+6. [ ] Vitest run (Phase 1+ saat ada test)
+7. [x] Build (dengan placeholder env)
 
 **Acceptance**:
-- [ ] CI jalan di PR
-- [ ] All checks green sebelum merge
-- [ ] Cache hit rate >80% setelah first run
+- [x] CI workflow file ada
+- [ ] **Verify**: jalan di PR (test setelah push first PR)
+- [ ] **Verify**: All checks green
+- [ ] **Verify**: Cache hit rate >80%
 
-**Est**: 2 hours
+**Est**: 2 hours · **Actual**: done
 
 ---
 
-## Step 15: Seed data
+## Step 15: Seed data ⏳
 
 **Goal**: bootstrap currencies + templates.
 
-**Files**:
-- `apps/web/src/server/db/seed/index.ts`
-- `apps/web/src/server/db/seed/currencies.ts` — IDR, USD, EUR, JPY, SGD, BTC, ETH, USDT, dll
-- `apps/web/src/server/db/seed/templates.ts` — 6 builtin templates per ERD 2.19
-
-**Script**:
-- `pnpm db:seed` — populate DB
+**Files** (akan dibuat Phase 1+):
+- `apps/web/src/server/seed/index.ts`
+- `apps/web/src/server/seed/currencies.ts`
+- `apps/web/src/server/seed/templates.ts`
 
 **Templates**:
 - Blank
-- Personal Wealth — Tabungan, Saham, Crypto, Emas, Property
-- Family Asset — Rumah, Kendaraan, Elektronik, Furniture, Koleksi
-- Office Equipment — Laptop, Monitor, Peripheral, Furniture, Lisensi Software
-- Real Estate — Tanah, Rumah, Apartemen, Ruko
-- Crypto Portfolio — Bitcoin, Ethereum, Altcoin, Stablecoin
-
-Each template's `definition` jsonb includes `categories[]` dengan `fields[]` sesuai use case.
+- Personal Wealth
+- Family Asset
+- Office Equipment
+- Real Estate
+- Crypto Portfolio
 
 **Acceptance**:
-- [ ] Run `pnpm db:seed` populate 9+ currencies, 6 templates
-- [ ] Templates definition valid JSON
-- [ ] Idempotent (run dua kali tidak duplicate)
+- [ ] **Phase 1**: Run `pnpm db:seed` populate currencies + templates
+- [ ] **Phase 1**: Templates definition valid JSON
+- [ ] **Phase 1**: Idempotent
 
-**Est**: 4 hours
+**Status**: deferred ke Phase 1 saat workspace_templates schema ready
 
 ---
 
-## Step 16: Initial cron job
+## Step 16: Initial cron job ✅
 
 **Goal**: rate refresh skeleton.
 
 **Files**:
-- `apps/web/app/api/webhooks/cron/rate-refresh/route.ts`
-- `apps/web/vercel.json` — cron config
+- [x] `apps/web/app/api/webhooks/cron/rate-refresh/route.ts` — stub dengan CRON_SECRET check
+- [x] `apps/web/vercel.json` — schedule `0 */6 * * *`
 
 **Logic**:
-- Verify `X-Cron-Secret` header
-- Fetch fiat dari frankfurter.app
-- Fetch crypto dari CoinGecko
-- Upsert ke `exchange_rates` dengan `valid_from = now()`, `source = 'api'`
+- [x] Verify `X-Cron-Secret` header
+- [ ] **Phase 3**: Fetch fiat dari frankfurter.app
+- [ ] **Phase 3**: Fetch crypto dari CoinGecko
+- [ ] **Phase 3**: Upsert ke `exchange_rates`
 
 **Acceptance**:
-- [ ] Schedule registered di vercel.json (`*/6 * * * *` adjust ke 6h)
-- [ ] Manual trigger via cron secret sukses
-- [ ] Rates appear di DB
+- [x] Schedule registered di vercel.json
+- [x] Route handler responds dengan secret check
+- [ ] **Phase 3**: Full implementation
 
-**Est**: 3 hours
+**Est**: 3 hours · **Actual**: stub done
 
 ---
 
-## Step 17: First E2E flow
+## Step 17: First E2E flow ⏳
 
 **Goal**: register → create workspace → see empty dashboard.
 
 **Stories implemented**: AUTH-01, AUTH-02, AUTH-04, WS-01, WS-02
 
-**Pages**:
-- `/register` — form
-- `/login` — form
-- `/verify-email/:token`
-- `/onboarding` — template picker (after verify)
-- `/app` — workspace list / switcher
-- `/app/w/:slug` — empty dashboard with CTAs
+**Pages** (slicing dulu, wiring nanti):
+- [ ] `/register` — form
+- [ ] `/login` — form
+- [ ] `/verify-email/[token]`
+- [ ] `/forgot-password`
+- [ ] `/reset-password/[token]`
+- [ ] `/onboarding` — template picker
+- [ ] `/app` — workspace list
+- [ ] `/app/w/[slug]` — empty dashboard
 
 **API**:
-- better-auth handlers
-- `workspaces.create` (with template materialize)
-- `workspaces.list`
-- `workspaces.get`
+- [x] better-auth handlers wired (butuh DB)
+- [ ] `workspaces.create` (with template materialize) — Phase 1
+- [ ] `workspaces.list` — Phase 1
+- [ ] `workspaces.get` — Phase 1
 
 **Acceptance**:
-- [ ] Register → email link → verify → onboarding
-- [ ] Pick template (e.g. Family Asset) + name → submit
-- [ ] Workspace created with categories + fields materialized
-- [ ] Redirect to empty dashboard
-- [ ] Activity log entry `workspace.create` dibuat
+- [ ] Register UI → submit (UI slicing dulu)
+- [ ] **Wiring (butuh DB)**: Email link → verify → onboarding
+- [ ] **Wiring (butuh DB)**: Pick template + name → submit
+- [ ] **Wiring**: Workspace created with categories + fields materialized
+- [ ] **Wiring**: Redirect to empty dashboard
+- [ ] **Wiring**: Activity log entry `workspace.create` dibuat
 - [ ] Mobile + desktop layout responsif
 
-**Est**: 2 days (16 hours)
+**Est**: 2 days · **Status**: slicing UI dulu (no DB wiring yet)
 
 ---
 
 ## Daily Budget
 
-| Day | Steps | Total est |
+| Day | Steps | Status |
 |---|---|---|
-| Day 1 | 1, 2, 3 | 2.5 hours |
-| Day 2 | 4, 5 (partial) | 8 hours |
-| Day 3 | 5 (finish) | 8 hours |
-| Day 4 | 6, 7 | 8 hours |
-| Day 5 | 8, 9 | 6 hours |
-| Day 6 | 10, 11 | 7 hours |
-| Day 7 | 12, 13, 14 | 6 hours |
-| Day 8 | 15, 16 | 7 hours |
-| Day 9 | 17 (start) | 8 hours |
-| Day 10 | 17 (finish + buffer) | 8 hours |
-
-**Total**: ~70 hours = 10 working days = **2 minggu**.
-
-Buffer untuk debugging + unexpected: built into Day 10.
+| Day 1 | 1, 2, 3 | ✅ done |
+| Day 2 | 4, 5 (partial) | ✅ done |
+| Day 3 | 5 (finish) | 🟡 scaffold only (butuh DB) |
+| Day 4 | 6, 7 | 🟡 6 scaffold, 7 done |
+| Day 5 | 8, 9 | 🟡 partial |
+| Day 6 | 10, 11 | 🟡 10 done, 11 scaffold |
+| Day 7 | 12, 13, 14 | 🟡 12 scaffold, 14 done |
+| Day 8 | 15, 16 | 🟡 16 done, 15 deferred |
+| Day 9 | 17 (start) | ⏳ slicing UI |
+| Day 10 | 17 (finish + buffer) | ⏳ |
 
 ---
 
 ## Definition of Done — Phase 0
 
-Phase 0 selesai ketika:
-
-- [ ] All 17 steps acceptance criteria centang
-- [ ] User dapat register + verify email + login
-- [ ] User dapat create workspace dari template
+- [x] Phase 0 step 1-4, 7, 10, 14, 16 fully done
+- [ ] Step 5, 6, 9, 11, 12 verified setelah user setup external accounts
+- [ ] Step 13 deploy preview running
+- [ ] Step 15 seed data jalan (Phase 1)
+- [ ] Step 17 register + verify + login + create workspace working E2E
 - [ ] Empty workspace dashboard load di desktop + mobile
 - [ ] CI/CD green untuk PR + main
-- [ ] Sentry capture exception
-- [ ] Rate limit aktif untuk auth endpoints
-- [ ] R2 upload+download bekerja (verified manual)
-- [ ] Cron rate refresh schedule visible
 - [ ] Tidak ada TODO P0 blocker untuk Phase 1
-
----
-
-## Out of Scope — Phase 0
-
-Jangan implementasi di Phase 0 (defer ke phase berikut):
-
-- Asset CRUD (Phase 1)
-- Category management UI (Phase 1)
-- Member invitation flow lengkap (Phase 2)
-- Public sharing (Phase 5)
-- Dashboard data viz (Phase 3)
-- Attachment upload UI (Phase 4)
-- Activity log UI (Phase 4)
-
-Yang penting: infrastructure + first slice end-to-end. Sisanya Phase berikut.
 
 ---
 
 ## Risk & Blockers
 
-| Risk | Mitigation |
-|---|---|
-| Neon connection pooling issue di Vercel edge | Pakai HTTP driver `@neondatabase/serverless`, bukan TCP |
-| better-auth Drizzle adapter quirk | Pin version, baca release notes, test register flow awal |
-| R2 CORS untuk direct upload | Set CORS origin di R2 settings sebelum step 9 |
-| Resend domain verification lambat | Setup DNS lebih awal di Day 1 |
-| Drizzle migration drift | Selalu `generate` + commit migration file, jangan modify post-apply |
-| Vercel build time | Cache pnpm store + Next.js cache enabled |
+| Risk | Mitigation | Status |
+|---|---|---|
+| Neon connection pooling issue di Vercel edge | Pakai HTTP driver `@neondatabase/serverless` | ✅ implemented |
+| better-auth Drizzle adapter quirk | Pin version, test register flow awal | ⏳ test pending |
+| R2 CORS untuk direct upload | Set CORS origin di R2 settings | ⏳ user setup |
+| Resend domain verification lambat | Setup DNS lebih awal | ⏳ Phase 6 launch |
+| Drizzle migration drift | Selalu `generate` + commit migration file | ✅ workflow ready |
+| Vercel build time | Cache pnpm store + Next.js cache enabled | ✅ CI configured |
 
 ---
 
 ## Changelog
 
-- 0.2 — Update file path Step 4-8 ke feature-first layout: `src/shared/ui/`, `src/shared/utils/cn.ts`, `src/server/db.ts` aggregator, `src/server/auth.ts`, `src/server/trpc.ts`, per-feature `features/<name>/server/db.ts`. Drop clean-arch 8-layer (terlalu rigid untuk Next.js + tRPC).
+- 0.3 — Status mark-up per step. Reality: step 1-4 done, 7+10+14+16 done, step 5/6/9/11/12 scaffolded (butuh credentials), step 13/15/17 pending. shadcn `form` belum installed (TODO step 4). Common Zod types deferred ke Phase 1.
+- 0.2 — Update file path Step 4-8 ke feature-first layout: `src/shared/ui/`, `src/shared/utils/cn.ts`, `src/server/db.ts` aggregator, `src/server/auth.ts`, `src/server/trpc.ts`, per-feature `features/<name>/server/db.ts`. Drop clean-arch 8-layer.
 - 0.1 — Initial Phase 0 checklist. 17 steps, 10-day plan, acceptance per step, risk register.

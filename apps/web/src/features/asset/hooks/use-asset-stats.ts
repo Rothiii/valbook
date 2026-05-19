@@ -1,6 +1,10 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+
 import { useAssetStore } from '../store';
+import type { Asset } from '../types';
 
 export type AssetStats = {
   total: number;
@@ -11,27 +15,25 @@ export type AssetStats = {
   byOwner: Map<string, number>;
 };
 
+const EMPTY_ASSETS: Asset[] = [];
+
 export function useAssetStats(workspaceId: string | null | undefined): AssetStats {
-  return useAssetStore((s) => {
-    const empty: AssetStats = {
-      total: 0,
-      active: 0,
-      archived: 0,
-      totalValueByCurrency: {},
-      byCategory: new Map(),
-      byOwner: new Map(),
-    };
-    if (!workspaceId) return empty;
-    const scoped = s.assets.filter((a) => a.workspaceId === workspaceId);
+  const assets = useAssetStore(
+    useShallow((s) =>
+      workspaceId ? s.assets.filter((a) => a.workspaceId === workspaceId) : EMPTY_ASSETS,
+    ),
+  );
+
+  return useMemo(() => {
     const stats: AssetStats = {
-      total: scoped.length,
+      total: assets.length,
       active: 0,
       archived: 0,
       totalValueByCurrency: {},
       byCategory: new Map(),
       byOwner: new Map(),
     };
-    for (const asset of scoped) {
+    for (const asset of assets) {
       if (asset.archivedAt) {
         stats.archived += 1;
         continue;
@@ -52,5 +54,5 @@ export function useAssetStats(workspaceId: string | null | undefined): AssetStat
       }
     }
     return stats;
-  });
+  }, [assets]);
 }

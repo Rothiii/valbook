@@ -1,12 +1,16 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
+
 import { useWorkspaceStore } from '../store';
 
 export function useWorkspaceActions() {
-  return useWorkspaceStore((s) => ({
-    createWorkspace: s.createWorkspace,
-    updateWorkspace: s.updateWorkspace,
-    deleteWorkspace: s.deleteWorkspace,
-    setCurrentSlug: s.setCurrentSlug,
-  }));
+  return useWorkspaceStore(
+    useShallow((s) => ({
+      createWorkspace: s.createWorkspace,
+      updateWorkspace: s.updateWorkspace,
+      deleteWorkspace: s.deleteWorkspace,
+      setCurrentSlug: s.setCurrentSlug,
+    })),
+  );
 }

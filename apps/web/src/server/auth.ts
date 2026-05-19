@@ -4,6 +4,10 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
 
+import { PasswordReset } from '@/src/emails/password-reset';
+import { VerifyEmail } from '@/src/emails/verify-email';
+import { sendEmail } from '@/src/shared/lib/email';
+
 import { db } from './db';
 
 export const auth = betterAuth({
@@ -19,14 +23,24 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     maxPasswordLength: 128,
     autoSignIn: false,
+    sendResetPassword: async ({ user, url }) => {
+      await sendEmail({
+        to: user.email,
+        subject: 'Reset your Valbook password',
+        react: PasswordReset({ userName: user.name ?? user.email, resetUrl: url }),
+      });
+    },
   },
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60 * 24,
-    sendVerificationEmail: async ({ user: _user, url: _url }) => {
-      // Wired up in Phase 0 Step 10 (Resend). For now this is a no-op placeholder
-      // so the auth handler compiles without a real mailer.
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendEmail({
+        to: user.email,
+        subject: 'Verify your Valbook email',
+        react: VerifyEmail({ userName: user.name ?? user.email, verifyUrl: url }),
+      });
     },
   },
   user: {

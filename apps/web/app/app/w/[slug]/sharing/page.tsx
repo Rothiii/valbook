@@ -1,32 +1,24 @@
-import type { Metadata } from 'next';
+'use client';
 
-import { Button } from '@/src/shared/ui/button';
-import { Card, CardContent } from '@/src/shared/ui/card';
-import { EmptyState } from '@/src/shared/ui/empty-state';
+import { notFound } from 'next/navigation';
+import { use } from 'react';
+
+import { SharingManager } from '@/src/features/sharing/components/sharing-manager';
+import { useWorkspaceBySlug } from '@/src/features/workspace/hooks/use-workspaces';
 import { PageHeader } from '@/src/shared/ui/page-header';
 
-export const metadata: Metadata = { title: 'Sharing · Valbook' };
+export default function SharingPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+  const workspace = useWorkspaceBySlug(slug);
+  if (!workspace) notFound();
 
-export default function SharingPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
         title="Sharing"
-        description="Generate public read-only links to this workspace or specific assets."
-        actions={<Button>+ Create link</Button>}
+        description="Public read-only links to this workspace or specific assets."
       />
-
-      <Card className="mb-6 border-destructive/30">
-        <CardContent className="pt-6 text-sm text-muted-foreground">
-          ⚠️ Anyone with the link can view (read-only). Treat shared links like passwords.
-        </CardContent>
-      </Card>
-
-      <EmptyState
-        title="No active links"
-        description="Create a public link to share your workspace data without giving full access."
-        action={<Button>+ Create link</Button>}
-      />
+      <SharingManager workspaceId={workspace.id} workspaceName={workspace.name} />
     </div>
   );
 }

@@ -2,9 +2,19 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.1
+Version: 0.2
 Source: [mvp-stories.md](mvp-stories.md), [api-design.md](api-design.md), [permission-matrix.md](permission-matrix.md)
 Window: **Week 17–18** (10 working days)
+
+## Status: 🟡 Slicing complete (in-memory)
+
+- ✅ Group 5.1 Share store: createShare, updateExpiry, revokeShare
+- ✅ Group 5.2 SharingManager UI di `/app/w/[slug]/sharing` — create dialog (workspace or asset scope, expiry preset), active list, revoked history, copy link
+- ✅ Group 5.3 Public view route `/public/[token]` dengan status handling (invalid/revoked/expired/missing)
+- ✅ Group 5.4 PublicView component: workspace scope (asset list dengan category + owner), asset scope (standalone with sub-asset list)
+- 🟡 Group 5.5 Edge cache — deferred wiring phase
+- 🟡 Group 5.6 Security audit — deferred wiring phase
+- noindex via Next.js metadata robots set
 
 ---
 

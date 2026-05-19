@@ -1,10 +1,56 @@
 # Setup Guide
 
-Langkah lengkap untuk menjalankan Valbook dari nol — dari install dependencies sampai jalan di browser dengan koneksi ke semua service eksternal.
+Langkah lengkap untuk menjalankan Valbook dari nol.
+
+Dua mode:
+- **Quick start (slicing mode)** — lokalan saja, tanpa akun eksternal. Cocok untuk preview flow UI di browser.
+- **Full setup** — lengkap dengan Neon, R2, Resend, Upstash, Sentry, Vercel. Wajib saat wiring tRPC + Drizzle (after slicing-first phase done).
 
 ---
 
-## 1. Prerequisites (di mesin lokal)
+## 0. Quick start (slicing mode) — paling minimal
+
+Tidak butuh DB, email, storage, atau service eksternal. Semua state in-memory di browser via zustand + localStorage.
+
+**Prereq**: Node 22 LTS + pnpm 10 + git.
+
+```bash
+git clone https://github.com/Rothiii/valbook.git
+cd valbook
+pnpm install
+pnpm dev
+```
+
+Buka **http://localhost:3000** (atau port lain kalau di-set di `apps/web/.env.local`).
+
+**Test flow**:
+1. `/register` → fill form → token auto-redirect ke `/verify-email/[token]`
+2. Klik "Go to login" → `/login` → masuk
+3. `/onboarding` → pick template (e.g. Family Asset) → categories auto-seeded
+4. Dashboard, asset CRUD, categories with custom fields, owner labels, tags, attachments (upload image up to 5MB), valuation history + CSV import + chart, member invite (mock token), public sharing
+5. Data persisted di `localStorage`. Clear via DevTools → Application → Local Storage → hapus `valbook-*` keys
+
+**Tidak perlu**:
+- `.env.local` (semua env punya fallback placeholder)
+- Database / Postgres
+- Resend / SMTP
+- R2 / S3
+- Upstash Redis
+- Sentry
+- Vercel
+- Domain
+
+**Optional**: install git hooks supaya commit auto-lint:
+
+```bash
+pnpm lefthook install
+```
+
+Stop dev server: `Ctrl+C`.
+
+---
+
+## 1. Prerequisites (di mesin lokal — full setup)
 
 - **Node.js 22 LTS** — verify: `node -v` harus `v22.x`
 - **pnpm 10+** — install: `npm install -g pnpm` atau `corepack enable && corepack prepare pnpm@latest --activate`

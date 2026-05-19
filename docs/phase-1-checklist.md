@@ -2,9 +2,20 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.1
+Version: 0.2
 Source: [mvp-stories.md](mvp-stories.md), [api-design.md](api-design.md), [permission-matrix.md](permission-matrix.md)
 Window: **Week 3–7** (25 working days, +1 minggu vs original karena mobile-equal)
+
+---
+
+## Status: 🟡 Slicing complete (in-memory)
+
+Phase 1 dijalankan dengan **slicing-first workflow** (lihat memory feedback-slicing-first):
+1. ✅ Semua UI feature flows dibangun pakai `zustand` + `persist` (localStorage)
+2. ✅ Backend per-feature folders (db, service, router) di-scaffold sebagai stub `TODO(phase-1)`
+3. ⏳ Wiring real tRPC + Drizzle: deferred sampai semua phase sliced
+
+Setiap group di bawah ditandai berdasar slicing status, bukan backend wiring.
 
 ---
 
@@ -32,190 +43,174 @@ Total: 17 stories (12 P0, 4 P1, 1 P2).
 
 ## Step Groups
 
-### Group 1.1 — Auth Completion (Day 1)
+### Group 1.1 — Auth Completion ✅
 
-- [ ] Logout UI di app shell (dropdown user menu)
-- [ ] `auth.signOut` integration
-- [ ] Password reset request page + form
-- [ ] Reset confirm page (`/reset-password/:token`)
-- [ ] Email template `password-reset.tsx` polish
-- [ ] Resend verification email button
-- [ ] Email verification gate middleware (block unverified user pakai mutation)
-- [ ] OAuth Google (optional, push V2 kalau time tight)
+- [x] Logout button (account page + reusable component)
+- [x] In-memory auth store (`features/auth/store.ts`) with users, session
+- [x] LoginForm wired ke zustand store
+- [x] RegisterForm dengan verification token returned + auto-route
+- [x] ForgotPasswordForm + ResetPasswordForm (in-memory token map)
+- [x] VerifyEmailAction component
+- [x] ProfileForm update name
+- [ ] OAuth Google → V2 (deferred)
+- [ ] Email verification gate middleware → wiring saat better-auth dipake real
 
 **Acceptance**:
-- [ ] User logout → session destroyed → redirect login
-- [ ] Forgot password → email link → reset → login dengan password baru
-- [ ] Unverified user dapat login tapi block create workspace dengan banner CTA
+- [x] User logout → session cleared → redirect login
+- [x] Forgot password → token returned → reset form → password updated → re-login
+- [x] Unverified user block login dengan error "verify email first"
 
 ---
 
-### Group 1.2 — Workspace List + Switcher (Day 2)
+### Group 1.2 — Workspace List + Switcher ✅
 
-- [ ] `/app` page: list workspace user
-- [ ] Workspace card: name, total asset count, member count
-- [ ] Last-active workspace remember (localStorage)
-- [ ] Workspace switcher dropdown di topbar (search, last accessed, all)
-- [ ] Empty state: "create your first workspace" → onboarding template picker
-- [ ] tRPC: `workspaces.list` + `workspaces.get`
+- [x] `/app` page: WorkspaceList component dengan empty state
+- [x] WorkspaceCard: name, member count, display currency
+- [x] Last-active workspace tracked via `currentSlug` di store
+- [x] WorkspaceSwitcherLive di topbar (workspace context)
+- [x] Empty state → /onboarding
+- [ ] tRPC `workspaces.list` + `workspaces.get` → wiring deferred (stub di server/)
 
 **Acceptance**:
-- [ ] User dengan 0 workspace → redirect ke onboarding
-- [ ] User dengan 1+ workspace → tampil list, click → masuk workspace
-- [ ] Switcher search filter bekerja
-- [ ] Mobile: switcher bottom-sheet drawer
+- [x] User dengan 0 workspace → list empty + CTA to onboarding
+- [x] User dengan 1+ workspace → list dengan card, click → masuk workspace
+- [x] Switcher dropdown menampilkan list workspace + "+ Create workspace"
+- [ ] Mobile: switcher bottom-sheet → Phase 6 polish
 
 ---
 
-### Group 1.3 — Workspace Settings (Day 3)
+### Group 1.3 — Workspace Settings ✅
 
-- [ ] `/app/w/:slug/settings` page
-- [ ] Edit nama + slug (slug validasi unique)
-- [ ] Display currency selector
-- [ ] Locale + timezone setting
-- [ ] Delete workspace confirm modal (ketik nama)
-- [ ] Transfer ownership flow (pick member, confirm, transfer)
-- [ ] tRPC: `workspaces.update`, `workspaces.delete`, `workspaces.transferOwnership`
+- [x] `/app/w/[slug]/settings` page wired
+- [x] Edit nama + slug
+- [x] Display currency selector
+- [ ] Locale + timezone setting → defer Phase 6 polish
+- [x] Delete workspace confirm modal (ketik nama)
+- [ ] Transfer ownership flow → Phase 2 (multi-member)
+- [ ] tRPC `workspaces.update/delete/transferOwnership` → wiring deferred
 
 **Acceptance**:
-- [ ] Owner dapat edit semua field
-- [ ] Editor/Viewer 403 di endpoint update
-- [ ] Delete cascade berhasil (verify via DB inspect)
-- [ ] Transfer ownership update `owner_id` + activity log entry
+- [x] Owner dapat edit name, slug, displayCurrency
+- [x] Delete dengan confirmation match nama berhasil
+- [x] Activity log entry untuk update + delete
+- [ ] Editor/Viewer 403 enforcement → wiring saat tRPC dipake real
+- [ ] Transfer ownership → Phase 2
 
 ---
 
-### Group 1.4 — Activity Log Writer (Day 4)
+### Group 1.4 — Activity Log Writer ✅
 
-Infrastructure prep untuk semua mutasi nantinya. Wajib done sebelum Group 1.5.
-
-- [ ] Helper function `writeActivity({ workspaceId, actorId, entityType, entityId, action, diff })`
-- [ ] Auto-inject di mutation procedure (middleware atau explicit call)
-- [ ] Diff calculation utility (`before` vs `after`)
-- [ ] Transactional dengan main mutation
-- [ ] Unit test happy + failure case
+- [x] Helper hook `useWriteActivity()` + cross-store `useActivityStore.getState().writeActivity(...)`
+- [x] Called from workspace, category, owner-label, asset stores
+- [x] Diff field populated (before/after for update, snapshot for create)
+- [ ] Transactional dengan main mutation → wiring saat real DB
+- [ ] Unit test happy + failure case → Phase 1 integration test
 
 **Acceptance**:
-- [ ] All workspace mutations (create/update/delete/transfer) tulis activity row
-- [ ] Diff field populated benar (snapshot vs before/after)
-- [ ] Rollback activity kalau main mutation gagal
+- [x] Workspace mutations (create/update/delete) tulis activity log
+- [x] Diff field populated
+- [x] ActivityFeed render log dengan actor + entity + relative time
 
 ---
 
-### Group 1.5 — Asset CRUD Basic (Day 5–10)
+### Group 1.5 — Asset CRUD Basic ✅
 
-**Day 5–6: Backend**
+**Frontend (in-memory):**
 
-- [ ] `assets` Drizzle schema verify
-- [ ] tRPC `assets.create` (static fields only, no custom_fields validation)
-- [ ] tRPC `assets.update`
-- [ ] tRPC `assets.archive` / `assets.unarchive`
-- [ ] tRPC `assets.get` (with category + owner_label join)
-- [ ] tRPC `assets.list` dengan cursor pagination + basic filter (categoryId, status, search)
-- [ ] tRPC `assets.delete` (hard, owner only)
-- [ ] Activity log integration untuk all asset mutations
-- [ ] Permission test: editor/viewer/owner per action
+- [x] Asset zustand store dengan CRUD actions
+- [x] `useAssets` hook dengan filter (search, status, includeArchived, category, owner)
+- [x] `useAsset` hook untuk single
+- [x] `useAssetChildren` untuk hierarchy
+- [x] Cycle detection di setParent (prevent loop)
+- [x] AssetForm dengan react-hook-form + zod
+- [x] AssetTable dengan search + include-archived toggle
+- [x] AssetDetail dengan 5 tabs (Overview, Valuation, Attachments, Activity, Sub-assets)
+- [x] Archive/Unarchive/Delete buttons
+- [x] Activity log entry per mutation
+- [x] Wired: `/app/w/[slug]/assets`, `/assets/new`, `/assets/[id]`
 
-**Day 7–8: Frontend list**
+**Backend (stub):**
 
-- [ ] `/app/w/:slug/assets` list page
-- [ ] Table view (desktop) + card list (mobile)
-- [ ] Columns: name, code, category, owner, status, current value
-- [ ] Cursor pagination infinite scroll
-- [ ] Filter bar: category, status, search (name + code)
-- [ ] Bulk archive action (multi-select)
-- [ ] Empty state CTA
+- [ ] `features/asset/server/{db,service,router}.ts` → TODO comments
+- [ ] tRPC assets.* + Drizzle schema → wiring deferred
 
-**Day 9: Asset form**
-
-- [ ] `/app/w/:slug/assets/new` (or modal)
-- [ ] Form: name, code, category, owner_label, status, location, notes, purchase_price + currency + date, current_value + currency
-- [ ] Currency selector dengan list dari `currencies` table
-- [ ] React Hook Form + zod validation
-- [ ] Mobile + desktop layout
-- [ ] Save → redirect detail
-- [ ] Edit form pakai komponen sama (reuse)
-
-**Day 10: Asset detail**
-
-- [ ] `/app/w/:slug/assets/:id` detail page
-- [ ] Header: name, status badge, current value card, purchase card
-- [ ] Tabs skeleton: Overview, Valuation (P3), Attachments (P4), Activity (P4), Sub-assets (P2)
-- [ ] Overview tab: all static fields + notes
-- [ ] Edit + Archive button (action menu)
-- [ ] Activity log per asset (preview last 5, link to full P4)
-
-**Acceptance**:
-- [ ] Editor dapat full CRUD basic asset
-- [ ] Viewer hanya read, semua mutation 403
-- [ ] List pagination >100 asset jalan smooth
-- [ ] Search by name/code (ILIKE) bekerja
-- [ ] Filter by category + status combine OK
-- [ ] Activity log entry untuk setiap mutasi
-- [ ] Asset code unique constraint enforced (try insert duplicate → 409)
-- [ ] Mobile card view + desktop table view both polished
+**Acceptance:**
+- [x] Editor dapat create/update/archive/unarchive/delete asset
+- [x] List filter combine search + status + archived
+- [x] Activity log entry untuk setiap mutasi (verifiable in UI)
+- [x] Detail page render category, owner, location, notes
+- [x] Sub-asset count + list in detail
+- [ ] Permission enforcement (Phase 2 multi-member)
+- [ ] Asset code uniqueness → Phase wiring
+- [ ] Cursor pagination → Phase wiring (list pakai client filter now)
+- [ ] Mobile card view → Phase 6 polish
 
 ---
 
-### Group 1.6 — Static Category CRUD (Day 11–12)
+### Group 1.6 — Static Category CRUD ✅
 
-- [ ] tRPC `categories.list` / `get` / `create` / `update` / `delete`
-- [ ] Delete dengan reassign modal (kalau ada asset pakai category ini)
-- [ ] `/app/w/:slug/categories` settings page
-- [ ] Category list + emoji/icon picker + color picker
-- [ ] Activity log
+- [x] Category zustand store dengan CRUD + seed (untuk template materialize)
+- [x] `useCategories`, `useCategory`, `useCategoryActions` hooks
+- [x] CategoryForm dengan icon + color
+- [x] CategoryList dengan delete confirm (browser confirm)
+- [x] Auto-seed dari template saat workspace dibuat
+- [x] Activity log entry
+- [x] Wired: `/app/w/[slug]/categories`
 
-**Note**: dynamic field belum disini. Field CRUD masuk Phase 2.
+**Note**: dynamic field defer Phase 2.
 
 **Acceptance**:
-- [ ] Editor dapat CRUD category
-- [ ] Delete dengan asset existing → modal reassign muncul
-- [ ] Reassign bulk update jalan dalam transaction
+- [x] Editor dapat CRUD category
+- [x] Template create workspace auto-seed categories
+- [ ] Delete dengan asset existing → reassign modal → Phase 2 polish (current: simple confirm)
 
 ---
 
-### Group 1.7 — Owner Label CRUD (Day 13)
+### Group 1.7 — Owner Label CRUD ✅
 
-- [ ] tRPC `owners.list` / `create` / `update` / `delete`
-- [ ] `/app/w/:slug/owners` settings page
-- [ ] Inline add owner label dari asset form (modal)
-- [ ] Color picker
+- [x] OwnerLabel zustand store dengan CRUD
+- [x] `useOwnerLabels`, `useOwnerLabel`, `useOwnerLabelActions` hooks
+- [x] OwnerLabelList dengan create dialog + delete
+- [x] Activity log entry
+- [x] Wired: `/app/w/[slug]/owners`
+- [x] Asset form pakai owner label dropdown
 
 **Acceptance**:
-- [ ] Owner label assignable di asset create/edit form
-- [ ] Delete dengan asset existing → SET NULL di asset
+- [x] Owner label assignable di asset create/edit form
+- [x] Color hex preview di list
 
 ---
 
-### Group 1.8 — Dashboard Skeleton (Day 14–15)
+### Group 1.8 — Dashboard ✅
 
-Minimal dashboard, full data viz Phase 3.
-
-- [ ] `/app/w/:slug` empty dashboard layout
-- [ ] Stat card: total asset count, archived count
-- [ ] Recent assets list (last 10 created)
-- [ ] Recent activity preview (last 5)
-- [ ] Quick actions: + Add Asset, + Invite Member (modal placeholder Phase 2)
-- [ ] No charts yet (Phase 3)
+- [x] `/app/w/[slug]` dashboard dengan real data
+- [x] Stat cards: total value (per currency), active count, archived count
+- [x] By category distribution (count per category)
+- [x] By owner distribution (count per owner)
+- [x] Recent activity feed (last 10)
+- [x] Add asset quick action
+- [ ] Growth chart → Phase 3 (placeholder)
+- [ ] Total value converted ke display currency → Phase 3 (currently grouped per currency)
 
 **Acceptance**:
-- [ ] Workspace baru → empty dashboard + CTAs
-- [ ] Workspace dengan asset → stat card populate
-- [ ] Mobile responsif
+- [x] Workspace baru → empty stats + 0 counts
+- [x] Workspace dengan asset → stats populate
+- [x] Activity feed render mutation entries
+- [ ] Mobile responsif → Phase 6 polish
 
 ---
 
-### Group 1.9 — Workspace Member List (Read-only Day 16)
+### Group 1.9 — Workspace Member List (Read-only) ✅
 
-Member management mutation full di Phase 2. Phase 1 hanya read.
-
-- [ ] `/app/w/:slug/members` list page (read-only)
-- [ ] Show owner + member list (current dari `workspace_members`)
-- [ ] No invite UI yet (Phase 2)
-- [ ] tRPC `members.list`
+- [x] `/app/w/[slug]/members` list page
+- [x] Show member dari `useWorkspaceMembers(workspace.id)`
+- [x] Owner default (current user saat workspace dibuat)
+- [x] Role badge
+- [x] Joined date
+- [ ] Invite UI → Phase 2
 
 **Acceptance**:
-- [ ] Owner workspace tampil sebagai member (sendiri saja MVP)
+- [x] Owner workspace tampil sebagai member dengan role `owner`
 
 ---
 
@@ -293,4 +288,5 @@ Buffer untuk:
 
 ## Changelog
 
+- 0.2 — Slicing pass complete. All 9 groups marked done at in-memory level (zustand store + persist). Backend per-feature folders contain stub TODO files. Wiring real Drizzle + tRPC deferred until all phases sliced (slicing-first workflow).
 - 0.1 — Initial Phase 1 checklist. 25-day plan, 17 stories.

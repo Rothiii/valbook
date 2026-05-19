@@ -1,24 +1,24 @@
-import type { Metadata } from 'next';
+'use client';
 
-import { Button } from '@/src/shared/ui/button';
-import { EmptyState } from '@/src/shared/ui/empty-state';
+import { notFound } from 'next/navigation';
+import { use } from 'react';
+
+import { CategoryList } from '@/src/features/category/components/category-list';
+import { useWorkspaceBySlug } from '@/src/features/workspace/hooks/use-workspaces';
 import { PageHeader } from '@/src/shared/ui/page-header';
 
-export const metadata: Metadata = { title: 'Categories · Valbook' };
+export default function CategoriesPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+  const workspace = useWorkspaceBySlug(slug);
+  if (!workspace) notFound();
 
-export default function CategoriesPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
         title="Categories"
-        description="Define asset types and their custom fields."
-        actions={<Button>+ New category</Button>}
+        description="Define asset types. Custom fields per category land in Phase 2."
       />
-      <EmptyState
-        title="No categories yet"
-        description="Create categories like Laptop, Rumah, or Crypto. Add custom fields per category."
-        action={<Button>+ New category</Button>}
-      />
+      <CategoryList workspaceId={workspace.id} />
     </div>
   );
 }

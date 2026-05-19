@@ -3,6 +3,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import { useActivityStore } from '@/src/features/activity/store';
+
 import type { CreateWorkspaceInput, DeleteWorkspaceInput, UpdateWorkspaceInput } from './schema';
 import type { Workspace, WorkspaceInvitation, WorkspaceMember } from './types';
 
@@ -71,10 +73,22 @@ export const useWorkspaceStore = create<WorkspaceState & WorkspaceActions>()(
           invitations: { ...state.invitations, [id]: [] },
           currentSlug: input.slug,
         }));
+        useActivityStore.getState().writeActivity({
+          workspaceId: id,
+          actorId: input.ownerUserId,
+          actorName: input.ownerName,
+          entityType: 'workspace',
+          entityId: id,
+          entityLabel: workspace.name,
+          action: 'create',
+          diff: { snapshot: workspace },
+        });
         return workspace;
       },
 
       updateWorkspace: ({ slug, name, newSlug, displayCurrency }) => {
+        const before = get().workspaces.find((w) => w.slug === slug);
+        if (!before) return;
         set((state) => {
           const next = state.workspaces.map((w) =>
             w.slug === slug
@@ -92,6 +106,19 @@ export const useWorkspaceStore = create<WorkspaceState & WorkspaceActions>()(
             currentSlug: state.currentSlug === slug ? (newSlug ?? slug) : state.currentSlug,
           };
         });
+        const after = get().workspaces.find((w) => w.id === before.id);
+        if (after) {
+          useActivityStore.getState().writeActivity({
+            workspaceId: before.id,
+            actorId: before.ownerId,
+            actorName: 'Owner',
+            entityType: 'workspace',
+            entityId: before.id,
+            entityLabel: after.name,
+            action: 'update',
+            diff: { before, after },
+          });
+        }
       },
 
       deleteWorkspace: ({ slug, confirm }) => {
@@ -101,15 +128,18 @@ export const useWorkspaceStore = create<WorkspaceState & WorkspaceActions>()(
           throw new Error('Confirmation does not match workspace name');
         }
         set((state) => {
-          const { [ws.id]: _members, ...restMembers } = state.members;
-          const { [ws.id]: _inv, ...restInvitations } = state.invitations;
+          const nextMembers = { ...state.members };
+          delete nextMembers[ws.id];
+          const nextInvitations = { ...state.invitations };
+          delete nextInvitations[ws.id];
           return {
             workspaces: state.workspaces.filter((w) => w.id !== ws.id),
-            members: restMembers,
-            invitations: restInvitations,
+            members: nextMembers,
+            invitations: nextInvitations,
             currentSlug: state.currentSlug === slug ? null : state.currentSlug,
           };
         });
+        useActivityStore.getState().clearWorkspace(ws.id);
       },
 
       setCurrentSlug: (slug) => set({ currentSlug: slug }),

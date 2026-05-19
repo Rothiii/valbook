@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { useSession } from '@/src/features/auth/hooks/use-session';
+import { useCategoryActions } from '@/src/features/category/hooks/use-categories';
 import { Button } from '@/src/shared/ui/button';
 import {
   Form,
@@ -22,6 +23,7 @@ import { Input } from '@/src/shared/ui/input';
 import { useWorkspaceActions } from '../hooks/use-workspace-actions';
 import { useWorkspaces } from '../hooks/use-workspaces';
 import { type CreateWorkspaceInput, createWorkspaceSchema } from '../schema';
+import { getTemplate } from '../templates';
 import { TemplatePicker } from './template-picker';
 
 function slugify(name: string): string {
@@ -37,6 +39,7 @@ export function CreateWorkspaceForm() {
   const router = useRouter();
   const { user } = useSession();
   const { createWorkspace } = useWorkspaceActions();
+  const { seedCategories } = useCategoryActions();
   const existingWorkspaces = useWorkspaces();
   const [pending, setPending] = useState(false);
 
@@ -75,6 +78,17 @@ export function CreateWorkspaceForm() {
         ownerName: user.name,
         ownerEmail: user.email,
       });
+      const template = getTemplate(values.templateId);
+      if (template && template.definition.categories.length > 0) {
+        seedCategories(
+          ws.id,
+          template.definition.categories.map((c) => ({
+            name: c.name,
+            icon: c.icon,
+            color: c.color,
+          })),
+        );
+      }
       toast.success('Workspace created');
       router.push(`/app/w/${ws.slug}`);
     } catch (error) {

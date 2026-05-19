@@ -2,9 +2,17 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.1
+Version: 0.2
 Source: [mvp-stories.md](mvp-stories.md), [api-design.md](api-design.md)
 Window: **Week 15–16** (10 working days)
+
+## Status: 🟡 Slicing complete (in-memory)
+
+- ✅ Group 4.1 Attachment upload — base64 data URL in store (5MB cap, mime allowlist), AttachmentTab dengan image preview lightbox + download + delete
+- ✅ Group 4.2 Tags CRUD + assign multi tag ke asset + filter
+- ✅ Group 4.3 Activity log full UI dengan filter (actor, entity type, action, date range)
+- ✅ Group 4.4 Search + filter advanced (search, category, owner, status, tag, value min/max, archive toggle)
+- 🟡 Group 4.5 Saved filter view — defer V2
 
 ---
 

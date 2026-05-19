@@ -11,6 +11,7 @@ import { DynamicFields } from '@/src/features/category/components/dynamic-fields
 import { useCategories } from '@/src/features/category/hooks/use-categories';
 import { useCategoryFields } from '@/src/features/category/hooks/use-fields';
 import { useOwnerLabels } from '@/src/features/owner-label/hooks/use-owner-labels';
+import { useAssetTagIds, useTagActions, useTags } from '@/src/features/tag/hooks/use-tags';
 import type { Workspace } from '@/src/features/workspace/types';
 import { Button } from '@/src/shared/ui/button';
 import {
@@ -46,8 +47,12 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
   const categories = useCategories(workspace.id);
   const owners = useOwnerLabels(workspace.id);
   const { createAsset, updateAsset } = useAssetActions();
+  const tags = useTags(workspace.id);
+  const existingTagIds = useAssetTagIds(asset?.id ?? null);
+  const { assignTags } = useTagActions();
   const [pending, setPending] = useState(false);
   const [customFieldErrors, setCustomFieldErrors] = useState<Record<string, string>>({});
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(asset ? existingTagIds : []);
 
   const form = useForm<CreateAssetInput>({
     resolver: zodResolver(createAssetSchema),
@@ -134,15 +139,23 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
     }
     setPending(true);
     try {
+      let assetId: string;
       if (asset) {
         updateAsset({ id: asset.id, ...values, actorId: user.id, actorName: user.name });
-        toast.success('Asset updated');
-        router.push(`/app/w/${workspace.slug}/assets/${asset.id}`);
+        assetId = asset.id;
       } else {
         const created = createAsset({ ...values, actorId: user.id, actorName: user.name });
-        toast.success('Asset created');
-        router.push(`/app/w/${workspace.slug}/assets/${created.id}`);
+        assetId = created.id;
       }
+      assignTags({
+        assetId,
+        tagIds: selectedTagIds,
+        workspaceId: workspace.id,
+        actorId: user.id,
+        actorName: user.name,
+      });
+      toast.success(asset ? 'Asset updated' : 'Asset created');
+      router.push(`/app/w/${workspace.slug}/assets/${assetId}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed');
     } finally {
@@ -377,6 +390,36 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
                 }
               }}
             />
+          </section>
+        ) : null}
+
+        {tags.length > 0 ? (
+          <section className="border-t border-border pt-6">
+            <h3 className="mb-3 text-sm uppercase tracking-wider text-muted-foreground">Tags</h3>
+            <div className="flex flex-wrap gap-2">
+              {tags.map((t) => {
+                const checked = selectedTagIds.includes(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() =>
+                      setSelectedTagIds((prev) =>
+                        prev.includes(t.id) ? prev.filter((id) => id !== t.id) : [...prev, t.id],
+                      )
+                    }
+                    className="border border-border px-3 py-1 text-xs transition-colors"
+                    style={
+                      checked
+                        ? { background: t.color ?? 'var(--foreground)', color: '#fafafa' }
+                        : undefined
+                    }
+                  >
+                    {t.name}
+                  </button>
+                );
+              })}
+            </div>
           </section>
         ) : null}
 

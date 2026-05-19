@@ -5,10 +5,13 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { ActivityFeed } from '@/src/features/activity/components/activity-feed';
+import { AttachmentTab } from '@/src/features/attachment/components/attachment-tab';
+import { useAssetAttachments } from '@/src/features/attachment/hooks/use-attachments';
 import { useSession } from '@/src/features/auth/hooks/use-session';
 import { useCategory } from '@/src/features/category/hooks/use-categories';
 import { useCategoryFields } from '@/src/features/category/hooks/use-fields';
 import { useOwnerLabel } from '@/src/features/owner-label/hooks/use-owner-labels';
+import { useAssetTagIds, useTags } from '@/src/features/tag/hooks/use-tags';
 import { ValuationTab } from '@/src/features/valuation/components/valuation-tab';
 import { useWorkspaceBySlug } from '@/src/features/workspace/hooks/use-workspaces';
 import { Badge } from '@/src/shared/ui/badge';
@@ -33,6 +36,10 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
   const children = useAssetChildren(asset.id);
   const ancestors = useAssetAncestors(asset);
   const workspace = useWorkspaceBySlug(workspaceSlug);
+  const attachments = useAssetAttachments(asset.id);
+  const allTags = useTags(asset.workspaceId);
+  const assignedTagIds = useAssetTagIds(asset.id);
+  const assignedTags = allTags.filter((t) => assignedTagIds.includes(t.id));
   const { archiveAsset, unarchiveAsset, deleteAsset } = useAssetActions();
 
   function handleArchiveToggle() {
@@ -99,6 +106,19 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
               </>
             ) : null}
           </div>
+          {assignedTags.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {assignedTags.map((t) => (
+                <Badge
+                  key={t.id}
+                  variant="secondary"
+                  style={t.color ? { background: t.color, color: '#fafafa' } : undefined}
+                >
+                  {t.name}
+                </Badge>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <Button
@@ -161,7 +181,7 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="valuation">Valuation</TabsTrigger>
-          <TabsTrigger value="attachments">Attachments</TabsTrigger>
+          <TabsTrigger value="attachments">Attachments ({attachments.length})</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
           <TabsTrigger value="children">Sub-assets ({children.length})</TabsTrigger>
         </TabsList>
@@ -197,7 +217,7 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
           />
         </TabsContent>
         <TabsContent value="attachments" className="mt-4">
-          <p className="text-sm text-muted-foreground">Attachments (Phase 4).</p>
+          <AttachmentTab assetId={asset.id} workspaceId={asset.workspaceId} />
         </TabsContent>
         <TabsContent value="activity" className="mt-4">
           <ActivityFeed workspaceId={asset.workspaceId} />

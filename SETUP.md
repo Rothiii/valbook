@@ -40,6 +40,39 @@ Buka **http://localhost:3000** (atau port lain kalau di-set di `apps/web/.env.lo
 - Vercel
 - Domain
 
+### Local Postgres + Redis (Docker) — saat siap wire backend
+
+Sebelum benar-benar wire tRPC + Drizzle, jalankan DB lokal via Docker (perlu Docker Desktop / OrbStack):
+
+```bash
+pnpm db:up        # start postgres + redis containers
+pnpm db:down      # stop
+pnpm db:reset     # drop volume + restart
+```
+
+Default credentials (di `docker-compose.yml`):
+- Postgres: `postgresql://valbook:valbook@localhost:5432/valbook`
+- Redis: `redis://localhost:6379`
+
+Copy `.env.example` ke `.env.local`:
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
+
+`DATABASE_URL` sudah default ke local Postgres. Generate + push schema:
+
+```bash
+pnpm db:generate   # generate migration files (drizzle-kit)
+pnpm db:push       # apply schema to local DB (dev iteration)
+pnpm db:migrate    # apply migration files (production-ish)
+pnpm db:studio     # open Drizzle Studio (browse tables)
+pnpm db:check      # check for migration drift
+pnpm db:seed       # populate seed data
+```
+
+Semua perintah ini akan no-op kalau `DATABASE_URL` belum diisi atau tabel belum di-define.
+
 **Optional**: install git hooks supaya commit auto-lint:
 
 ```bash

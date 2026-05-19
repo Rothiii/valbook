@@ -2,7 +2,7 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.3
+Version: 0.4
 Source: [tech-stack.md](tech-stack.md) section 15
 Target window: **Week 1–2** (10 working days)
 
@@ -29,7 +29,7 @@ Target window: **Week 1–2** (10 working days)
 | 14. GitHub Actions CI | ✅ done | Lint + typecheck + build green |
 | 15. Seed data | ⏳ pending | Butuh DB + workspace_templates schema (Phase 1) |
 | 16. Cron job | ✅ stub | Route + vercel.json wired; logic Phase 3 |
-| 17. First E2E flow | ⏳ pending | Slicing UI berikutnya; data wiring butuh DB |
+| 17. First E2E flow | 🟡 UI sliced | Semua Phase 1 page skeleton done; data wiring butuh DB |
 
 Legend: ✅ done · 🟡 scaffolded (butuh credentials atau dependency) · ⏳ pending
 
@@ -442,38 +442,61 @@ User-driven setup (lihat SETUP.md section 3.8):
 
 ---
 
-## Step 17: First E2E flow ⏳
+## Step 17: First E2E flow 🟡
 
 **Goal**: register → create workspace → see empty dashboard.
 
 **Stories implemented**: AUTH-01, AUTH-02, AUTH-04, WS-01, WS-02
 
-**Pages** (slicing dulu, wiring nanti):
-- [ ] `/register` — form
-- [ ] `/login` — form
-- [ ] `/verify-email/[token]`
-- [ ] `/forgot-password`
-- [ ] `/reset-password/[token]`
-- [ ] `/onboarding` — template picker
-- [ ] `/app` — workspace list
-- [ ] `/app/w/[slug]` — empty dashboard
+**Pages slicing** (UI skeleton done, wiring pending):
+- [x] `/login` — form (AuthCard + Input + Button)
+- [x] `/register` — form (name, email, password)
+- [x] `/verify-email/[token]` — token preview + continue
+- [x] `/forgot-password` — email input + submit
+- [x] `/reset-password/[token]` — new password form
+- [x] `/onboarding` — template picker (6 builtin cards) + workspace details
+- [x] `/app` — workspace list with empty state
+- [x] `/app/w/[slug]` — dashboard skeleton (stat cards + chart placeholders + recent activity)
+
+**Bonus slicing** (Phase 1+ pages tapi sudah sliced sekarang):
+- [x] `/app/w/[slug]/assets` — list dengan filter bar + table
+- [x] `/app/w/[slug]/assets/new` — form (static + dynamic placeholder)
+- [x] `/app/w/[slug]/assets/[id]` — detail tabs (overview, valuation, attachments, activity, sub-assets)
+- [x] `/app/w/[slug]/categories`, `/owners`, `/tags`, `/members`, `/activity`, `/sharing`, `/settings`
+- [x] `/account` — profile, password, sessions, delete
+- [x] `/invite/[token]` — accept invitation
+- [x] `/public/[token]` — read-only share view (noindex)
+
+**Layouts**:
+- [x] `app/(auth)/layout.tsx` — pass-through (AuthCard handles centering)
+- [x] `app/app/layout.tsx` — topbar shell
+- [x] `app/app/w/[slug]/layout.tsx` — topbar + workspace sidebar
+
+**Shared components** (di `src/shared/ui/`):
+- [x] `AuthCard` — centered card untuk auth pages
+- [x] `PageHeader` — title + description + actions
+- [x] `EmptyState` — icon + title + description + CTA
+- [x] `AppTopbar` — logo + workspace switcher + account link
+- [x] `WorkspaceSidebar` — 9 nav links per workspace
+- [x] `WorkspaceSwitcher` — dropdown dengan list workspace
 
 **API**:
-- [x] better-auth handlers wired (butuh DB)
+- [x] better-auth handlers wired (butuh DB connect untuk test)
 - [ ] `workspaces.create` (with template materialize) — Phase 1
 - [ ] `workspaces.list` — Phase 1
 - [ ] `workspaces.get` — Phase 1
 
 **Acceptance**:
-- [ ] Register UI → submit (UI slicing dulu)
-- [ ] **Wiring (butuh DB)**: Email link → verify → onboarding
-- [ ] **Wiring (butuh DB)**: Pick template + name → submit
-- [ ] **Wiring**: Workspace created with categories + fields materialized
+- [x] Semua page render tanpa error
+- [x] Build pass + lint clean
+- [x] Routing struktur sesuai roadmap
+- [ ] **Wiring (butuh DB)**: register → submit → email link → verify → onboarding
+- [ ] **Wiring (butuh DB)**: Pick template + name → submit → workspace created
 - [ ] **Wiring**: Redirect to empty dashboard
-- [ ] **Wiring**: Activity log entry `workspace.create` dibuat
-- [ ] Mobile + desktop layout responsif
+- [ ] **Wiring**: Activity log entry `workspace.create`
+- [ ] Mobile + desktop responsive audit (Phase 6 polish)
 
-**Est**: 2 days · **Status**: slicing UI dulu (no DB wiring yet)
+**Est**: 2 days · **Status**: ✅ slicing UI done. Wiring tRPC + DB di Phase 1 saat feature workspace dibangun.
 
 ---
 
@@ -497,12 +520,13 @@ User-driven setup (lihat SETUP.md section 3.8):
 ## Definition of Done — Phase 0
 
 - [x] Phase 0 step 1-4, 7, 10, 14, 16 fully done
+- [x] Step 17 UI slicing done (22 routes + 3 layouts + 6 shared components)
 - [ ] Step 5, 6, 9, 11, 12 verified setelah user setup external accounts
 - [ ] Step 13 deploy preview running
 - [ ] Step 15 seed data jalan (Phase 1)
-- [ ] Step 17 register + verify + login + create workspace working E2E
-- [ ] Empty workspace dashboard load di desktop + mobile
-- [ ] CI/CD green untuk PR + main
+- [ ] Step 17 wiring: register + verify + login + create workspace working E2E
+- [ ] Empty workspace dashboard load di desktop + mobile (verified)
+- [ ] CI/CD green untuk PR + main (verify setelah first PR push)
 - [ ] Tidak ada TODO P0 blocker untuk Phase 1
 
 ---
@@ -522,6 +546,7 @@ User-driven setup (lihat SETUP.md section 3.8):
 
 ## Changelog
 
+- 0.4 — Step 17 UI slicing complete: 22 routes (auth group, app, workspace area, public share), 3 layouts (auth/app/workspace), 6 shared components (AuthCard, PageHeader, EmptyState, AppTopbar, WorkspaceSidebar, WorkspaceSwitcher). typedRoutes disabled untuk Phase 1 (re-enable Phase 6). Resend lazy init untuk build dengan placeholder env.
 - 0.3 — Status mark-up per step. Reality: step 1-4 done, 7+10+14+16 done, step 5/6/9/11/12 scaffolded (butuh credentials), step 13/15/17 pending. shadcn `form` belum installed (TODO step 4). Common Zod types deferred ke Phase 1.
 - 0.2 — Update file path Step 4-8 ke feature-first layout: `src/shared/ui/`, `src/shared/utils/cn.ts`, `src/server/db.ts` aggregator, `src/server/auth.ts`, `src/server/trpc.ts`, per-feature `features/<name>/server/db.ts`. Drop clean-arch 8-layer.
 - 0.1 — Initial Phase 0 checklist. 17 steps, 10-day plan, acceptance per step, risk register.

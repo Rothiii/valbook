@@ -14,11 +14,13 @@ import { drizzle } from 'drizzle-orm/neon-http';
 
 const schema = {};
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is not set');
-}
+// Fallback URL keeps Next.js build-time static collection happy when env is
+// not loaded. Real DATABASE_URL must be set in .env.local / Vercel env for
+// runtime queries to succeed.
+const connectionString =
+  process.env.DATABASE_URL ?? 'postgresql://placeholder:placeholder@localhost/placeholder';
 
-const sql = neon(process.env.DATABASE_URL);
+const sql = neon(connectionString);
 
 export const db = drizzle({
   client: sql,

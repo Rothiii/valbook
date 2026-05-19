@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import { Geist_Mono } from 'next/font/google';
+
+import { TRPCProvider } from '@/src/shared/lib/trpc-provider';
+
 import './globals.css';
 
 const geistMono = Geist_Mono({
@@ -20,7 +23,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <TRPCProvider>{children}</TRPCProvider>
+      </body>
     </html>
   );
 }

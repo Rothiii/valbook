@@ -17,10 +17,14 @@ export function ProfileForm() {
 
   if (!user) return null;
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    updateProfile({ name });
-    toast.success('Profile updated');
+    try {
+      await updateProfile({ name });
+      toast.success('Profile updated');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Update failed');
+    }
   }
 
   return (

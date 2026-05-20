@@ -2,7 +2,7 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.5
+Version: 0.6
 Source: [tech-stack.md](tech-stack.md) section 15
 Target window: **Week 1–2** (10 working days)
 
@@ -16,11 +16,11 @@ Target window: **Week 1–2** (10 working days)
 | 1. Repo + pnpm workspace | ✅ done | |
 | 2. Next.js + TS | ✅ done | Next.js 16.2.6 (bukan 15, latest stable saat init) |
 | 3. Biome + lefthook | ✅ done | Biome 2.4.15 |
-| 4. Tailwind + shadcn/ui | 🟡 partial | `form` component belum ke-install |
+| 4. Tailwind + shadcn/ui | ✅ done | `form` installed; ThemeProvider (next-themes) wired di RootLayout |
 | 5. Drizzle + local Postgres | ✅ done | Schema lengkap semua phase. Migration generated + applied via `pnpm db:migrate`. Driver: postgres-js (works untuk local + Neon + Supabase + RDS) |
-| 6. better-auth | ✅ done | Config + Drizzle schema (user/session/account/verification) generated via `@better-auth/cli` ke `features/auth/server/db.ts`. Email handler wired |
+| 6. better-auth | ✅ done | Config + Drizzle schema generated. Email verification disabled (autoSignIn aktif); verify badge + resend button di /account |
 | 7. tRPC v11 | ✅ done | Root router, middleware base, provider wired |
-| 8. Zod schemas | 🟡 partial | Zod installed; common types + per-feature schemas Phase 1+ |
+| 8. Zod schemas | ✅ done | Common types di `shared/types/common.ts`. Per-feature schemas Phase 1+ |
 | 9. R2 client | 🟡 scaffold | Helper functions ready; butuh creds untuk test |
 | 10. Resend + emails | ✅ done | Client + 3 templates (verify, reset, invitation) |
 | 11. Upstash Redis | 🟡 scaffold | Rate limit + cache ready; butuh creds untuk test |
@@ -114,7 +114,7 @@ Setup akun sebelum mulai code. Lihat [../SETUP.md](../SETUP.md) untuk step-by-st
 
 ---
 
-## Step 4: Tailwind v4 + shadcn/ui 🟡
+## Step 4: Tailwind v4 + shadcn/ui ✅
 
 **Goal**: styling system + component primitives.
 
@@ -132,8 +132,8 @@ button, card, input, label, dialog, dropdown-menu, badge, table, tabs, sonner, s
 - [x] Tailwind v4 + PostCSS config benar
 - [x] `cn()` utility tersedia
 - [x] Dark mode CSS variables defined
-- [ ] **TODO**: `form` component belum installed (ada dependency react-hook-form + @hookform/resolvers)
-- [ ] **TODO**: ThemeProvider untuk toggle dark mode (next-themes)
+- [x] `form` component installed (react-hook-form + @hookform/resolvers v3)
+- [x] ThemeProvider (next-themes) wired di RootLayout (`shared/lib/theme-provider.tsx`)
 
 **Est**: 2 hours · **Actual**: ~3 hours (palette + monochrome theme)
 
@@ -176,7 +176,7 @@ button, card, input, label, dialog, dropdown-menu, badge, table, tabs, sonner, s
 
 ---
 
-## Step 6: better-auth 🟡
+## Step 6: better-auth ✅
 
 **Goal**: auth integration.
 
@@ -194,17 +194,18 @@ button, card, input, label, dialog, dropdown-menu, badge, table, tabs, sonner, s
 - [x] `sendVerificationEmail` + `sendResetPassword` wired ke Resend
 - [x] better-auth Drizzle schema generated ke `features/auth/server/db.ts` (user, session, account, verification)
 - [x] Migration applied — auth tables live di DB
+- [x] Email verification **disabled**: register direct, autoSignIn aktif. Profile menampilkan badge "Unverified" + tombol "Send verification email"
 
 **Acceptance**:
 - [x] Config scaffolded + email hooks wired
 - [x] `pnpm dlx @better-auth/cli generate` sukses
 - [x] `drizzle-kit migrate` apply better-auth tables
-- [ ] Register endpoint return user — butuh UI rewire ke better-auth client (saat ini pakai zustand mock)
-- [ ] Login + session cookie set — saat UI wire
-- [ ] Email verification token + email terkirim — saat UI wire + RESEND_API_KEY
-- [ ] Session callback inject user.id ke tRPC context — saat tRPC procedure pertama dibuat
+- [x] Register endpoint return user via better-auth client (`signUp.email`)
+- [x] Login + session cookie set via `signIn.email`
+- [x] Verify email kirim manual via tombol di /account (`sendVerificationEmail`)
+- [x] Session injected ke tRPC context via `auth.api.getSession`
 
-**Est**: 4 hours · **Actual**: scaffold done; verification butuh DB
+**Est**: 4 hours · **Actual**: done — verify on-demand pattern menggantikan blocking verify
 
 ---
 
@@ -221,33 +222,34 @@ button, card, input, label, dialog, dropdown-menu, badge, table, tabs, sonner, s
 **Middleware**:
 - [x] `publicProcedure` — no auth
 - [x] `protectedProcedure` — require session
-- [ ] **Phase 1+**: `workspaceProcedure(slug)` — inject `{ workspace, member, role }`
-- [ ] **Phase 1+**: `editorProcedure` — role >= editor
-- [ ] **Phase 1+**: `ownerProcedure` — role === owner
+- [x] `workspaceProcedure` — input `{ workspaceSlug }`, inject `{ workspace, member, role }` via Drizzle join
+- [x] `editorProcedure` — chained on workspaceProcedure, require role >= editor
+- [x] `ownerProcedure` — chained on workspaceProcedure, require role === owner
 
 **Acceptance**:
 - [x] Error formatting custom shaper bekerja (Zod error inject)
 - [x] Session injected ke context
 - [x] Build tanpa error
-- [ ] **Phase 1+**: Sample query callable dari client (akan dibuat saat feature pertama)
+- [x] Root router moved to `src/server/router.ts` (memutus circular import dengan feature router yang konsumsi procedures)
+- [x] `workspace.list` callable dari client (sample query selesai)
 
 **Est**: 4 hours · **Actual**: done
 
 ---
 
-## Step 8: Zod schemas 🟡
+## Step 8: Zod schemas ✅
 
 **Goal**: shared validation.
 
 **Files**:
 - [x] Zod installed
-- [ ] `apps/web/src/shared/types/common.ts` — currency, id, slug, role enums (deferred ke Phase 1)
-- [ ] Per-feature `schema.ts` (Phase 1+)
+- [x] `apps/web/src/shared/types/common.ts` — id, slug, currencyCode, role, inviteRole, assetStatus, fieldType, numericString, isoDate, cursorPagination + Result helper
+- [x] Per-feature `schema.ts` untuk workspace (Phase 1+ menyusul)
 
 **Acceptance**:
 - [x] Zod tersedia di client + server
-- [ ] **Phase 1+**: Common types tersedia di shared/types
-- [ ] **Phase 1+**: Each feature punya `create*Schema`, `update*Schema`
+- [x] Common types tersedia di shared/types
+- [x] workspace feature punya `create*Schema`, `update*Schema`, `delete*Schema`
 
 **Est**: 2 hours · **Actual**: 30 min (install only)
 
@@ -483,22 +485,25 @@ User-driven setup (lihat SETUP.md section 3.8):
 - [x] `WorkspaceSwitcher` — dropdown dengan list workspace
 
 **API**:
-- [x] better-auth handlers wired (butuh DB connect untuk test)
-- [ ] `workspaces.create` (with template materialize) — Phase 1
-- [ ] `workspaces.list` — Phase 1
-- [ ] `workspaces.get` — Phase 1
+- [x] better-auth handlers wired (DB connected, autoSignIn aktif)
+- [x] `workspace.create` (with template materialize) — Phase 1
+- [x] `workspace.list` — Phase 1
+- [x] `workspace.get` — Phase 1
+- [x] `workspace.update` (ownerProcedure) — Phase 1
+- [x] `workspace.delete` (ownerProcedure) — Phase 1
+- [x] `workspace.membership` — Phase 1
 
 **Acceptance**:
 - [x] Semua page render tanpa error
 - [x] Build pass + lint clean
 - [x] Routing struktur sesuai roadmap
-- [ ] **Wiring (butuh DB)**: register → submit → email link → verify → onboarding
-- [ ] **Wiring (butuh DB)**: Pick template + name → submit → workspace created
-- [ ] **Wiring**: Redirect to empty dashboard
-- [ ] **Wiring**: Activity log entry `workspace.create`
+- [x] register → autoSignIn (verify on-demand) — verify badge di /account
+- [ ] **Wiring (UI binding)**: Onboarding form pick template + name → submit → `workspace.create` mutation
+- [ ] **Wiring (UI binding)**: `/app` workspace list → `workspace.list` query
+- [ ] **Wiring**: Activity log entry tertulis ke DB saat workspace dibuat (service sudah insert; perlu test E2E)
 - [ ] Mobile + desktop responsive audit (Phase 6 polish)
 
-**Est**: 2 days · **Status**: ✅ slicing UI done. Wiring tRPC + DB di Phase 1 saat feature workspace dibangun.
+**Est**: 2 days · **Status**: 🟡 slicing UI + backend procedures done. UI bind ke tRPC mutation/query menyusul.
 
 ---
 
@@ -548,6 +553,7 @@ User-driven setup (lihat SETUP.md section 3.8):
 
 ## Changelog
 
+- 0.6 — Backend wiring landed: workspace tRPC router (list/get/create/update/delete/membership) + service layer (template materialize, activity log). Better-auth client SDK menggantikan zustand auth mock (register/login/logout/verify/forgot-password/reset-password/updateProfile semua via `authClient`). Email verification disabled — register langsung sign-in (autoSignIn). `/account` menampilkan `EmailVerificationCard` (badge Verified/Unverified + tombol Send verification email). Common Zod types di `shared/types/common.ts`. tRPC middleware lengkap (workspaceProcedure, editorProcedure, ownerProcedure). Root router di `src/server/router.ts` memutus circular import. ThemeProvider (next-themes) wired di RootLayout. Step 4, 6, 7, 8 marked done.
 - 0.5 — Backend schema applied. better-auth tables generated. 20 Drizzle tables (auth, workspace, category, owner-label, tag, asset, valuation, attachment, activity, sharing, currency) committed + migrated to local Postgres via postgres-js driver. `src/server/db.ts` aggregator imports all feature schemas. Step 5 + 6 marked done.
 - 0.4 — Step 17 UI slicing complete: 22 routes (auth group, app, workspace area, public share), 3 layouts (auth/app/workspace), 6 shared components (AuthCard, PageHeader, EmptyState, AppTopbar, WorkspaceSidebar, WorkspaceSwitcher). typedRoutes disabled untuk Phase 1 (re-enable Phase 6). Resend lazy init untuk build dengan placeholder env.
 - 0.3 — Status mark-up per step. Reality: step 1-4 done, 7+10+14+16 done, step 5/6/9/11/12 scaffolded (butuh credentials), step 13/15/17 pending. shadcn `form` belum installed (TODO step 4). Common Zod types deferred ke Phase 1.

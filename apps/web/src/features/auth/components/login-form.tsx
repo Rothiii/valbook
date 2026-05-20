@@ -30,10 +30,10 @@ export function LoginForm() {
     defaultValues: { email: '', password: '' },
   });
 
-  function onSubmit(values: LoginInput) {
+  async function onSubmit(values: LoginInput) {
     setPending(true);
     try {
-      login(values);
+      await login(values);
       toast.success('Logged in');
       router.push('/app');
     } catch (error) {

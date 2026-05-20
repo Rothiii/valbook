@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
+import { EmailVerificationCard } from '@/src/features/auth/components/email-verification-card';
 import { LogoutButton } from '@/src/features/auth/components/logout-button';
 import { ProfileForm } from '@/src/features/auth/components/profile-form';
 import { useSession } from '@/src/features/auth/hooks/use-session';
@@ -34,6 +35,8 @@ export default function AccountPage() {
             <ProfileForm />
           </CardContent>
         </Card>
+
+        <EmailVerificationCard />
 
         <Card>
           <CardHeader>

@@ -1,7 +1,11 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import type { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
+import { and, eq } from 'drizzle-orm';
 import superjson from 'superjson';
-import { ZodError } from 'zod';
+import { ZodError, z } from 'zod';
+
+import { workspaceMembers, workspaces } from '@/src/features/workspace/server/db';
+import { slugSchema } from '@/src/shared/types/common';
 
 import { auth } from './auth';
 import { db } from './db';
@@ -48,15 +52,63 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   });
 });
 
-// workspaceProcedure / editorProcedure / ownerProcedure will be added when the
-// workspace feature is built in Phase 1. They will accept a workspaceSlug input,
-// resolve membership, and inject { workspace, member, role } into the context.
+const workspaceSlugInput = z.object({ workspaceSlug: slugSchema });
 
-export const appRouter = router({
-  // Root router. Feature sub-routers are merged here as they are built in
-  // Phase 1+. Example:
-  //   workspace: workspaceRouter,
-  //   asset: assetRouter,
+/**
+ * workspaceProcedure injects { workspace, member, role } when the session user
+ * is a member of the workspace identified by `workspaceSlug` input. Use this
+ * for any procedure scoped to a single workspace.
+ */
+export const workspaceProcedure = protectedProcedure
+  .input(workspaceSlugInput)
+  .use(async ({ ctx, input, next }) => {
+    const row = await ctx.db
+      .select({
+        workspace: workspaces,
+        member: workspaceMembers,
+      })
+      .from(workspaces)
+      .innerJoin(
+        workspaceMembers,
+        and(
+          eq(workspaceMembers.workspaceId, workspaces.id),
+          eq(workspaceMembers.userId, ctx.user.id),
+        ),
+      )
+      .where(eq(workspaces.slug, input.workspaceSlug))
+      .limit(1);
+
+    const found = row[0];
+    if (!found) {
+      throw new TRPCError({ code: 'FORBIDDEN', message: 'Not a member of this workspace' });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        workspace: found.workspace,
+        member: found.member,
+        role: found.member.role,
+      },
+    });
+  });
+
+/** Require role >= editor (editor or owner). */
+export const editorProcedure = workspaceProcedure.use(({ ctx, next }) => {
+  if (ctx.role !== 'owner' && ctx.role !== 'editor') {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'Editor role required' });
+  }
+  return next({ ctx });
 });
 
-export type AppRouter = typeof appRouter;
+/** Require role === owner. */
+export const ownerProcedure = workspaceProcedure.use(({ ctx, next }) => {
+  if (ctx.role !== 'owner') {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'Owner role required' });
+  }
+  return next({ ctx });
+});
+
+// Root router and AppRouter type are defined in src/server/router.ts to
+// avoid a circular import between trpc.ts (procedures) and feature routers
+// that consume those procedures.

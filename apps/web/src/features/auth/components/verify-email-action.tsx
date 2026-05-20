@@ -19,13 +19,15 @@ export function VerifyEmailAction({ token }: VerifyEmailActionProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      verifyEmail(token);
-      setStatus('verified');
-    } catch (error) {
-      setStatus('error');
-      setErrorMessage(error instanceof Error ? error.message : 'Verification failed');
-    }
+    (async () => {
+      try {
+        await verifyEmail(token);
+        setStatus('verified');
+      } catch (error) {
+        setStatus('error');
+        setErrorMessage(error instanceof Error ? error.message : 'Verification failed');
+      }
+    })();
   }, [token, verifyEmail]);
 
   if (status === 'pending') {

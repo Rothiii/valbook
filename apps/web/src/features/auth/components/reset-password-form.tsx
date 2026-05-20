@@ -34,10 +34,10 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     defaultValues: { token, password: '', confirm: '' },
   });
 
-  function onSubmit(values: ResetPasswordInput) {
+  async function onSubmit(values: ResetPasswordInput) {
     setPending(true);
     try {
-      resetPassword(values.token, values.password);
+      await resetPassword(values.token, values.password);
       toast.success('Password updated. Please log in.');
       router.push('/login');
     } catch (error) {

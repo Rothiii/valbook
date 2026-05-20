@@ -14,13 +14,15 @@ export const auth = betterAuth({
     usePlural: false,
   }),
   baseURL: process.env.BETTER_AUTH_URL,
-  secret: process.env.BETTER_AUTH_SECRET ?? 'placeholder-secret-replace-in-env',
+  secret:
+    process.env.BETTER_AUTH_SECRET ??
+    'build-only-placeholder-set-BETTER_AUTH_SECRET-via-env-32+chars-required',
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    requireEmailVerification: false,
     minPasswordLength: 8,
     maxPasswordLength: 128,
-    autoSignIn: false,
+    autoSignIn: true,
     sendResetPassword: async ({ user, url }) => {
       await sendEmail({
         to: user.email,
@@ -30,7 +32,7 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
-    sendOnSignUp: true,
+    sendOnSignUp: false,
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60 * 24,
     sendVerificationEmail: async ({ user, url }) => {

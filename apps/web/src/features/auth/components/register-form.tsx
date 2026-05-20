@@ -30,13 +30,12 @@ export function RegisterForm() {
     defaultValues: { name: '', email: '', password: '' },
   });
 
-  function onSubmit(values: RegisterInput) {
+  async function onSubmit(values: RegisterInput) {
     setPending(true);
     try {
-      const { verificationToken } = registerUser(values);
-      toast.success('Account created. Check your email to verify.');
-      // Slicing mode: navigate directly with token in URL since email is fake.
-      router.push(`/verify-email/${verificationToken}`);
+      await registerUser(values);
+      toast.success('Account created. Welcome!');
+      router.push('/app');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Registration failed');
     } finally {

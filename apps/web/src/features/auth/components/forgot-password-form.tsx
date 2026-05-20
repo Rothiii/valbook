@@ -1,7 +1,6 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -21,7 +20,6 @@ import { useAuthActions } from '../hooks/use-auth-actions';
 import { type ForgotPasswordInput, forgotPasswordSchema } from '../schema';
 
 export function ForgotPasswordForm() {
-  const router = useRouter();
   const { forgotPassword } = useAuthActions();
   const [pending, setPending] = useState(false);
 
@@ -30,15 +28,13 @@ export function ForgotPasswordForm() {
     defaultValues: { email: '' },
   });
 
-  function onSubmit(values: ForgotPasswordInput) {
+  async function onSubmit(values: ForgotPasswordInput) {
     setPending(true);
     try {
-      const { token } = forgotPassword(values.email);
+      await forgotPassword(values.email);
       toast.success('Reset link sent. Check your email.');
-      if (token !== 'no-op') {
-        // Slicing mode: route directly since email is fake.
-        router.push(`/reset-password/${token}`);
-      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to send reset email');
     } finally {
       setPending(false);
     }

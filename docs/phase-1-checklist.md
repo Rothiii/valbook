@@ -2,20 +2,22 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.2
+Version: 0.3
 Source: [mvp-stories.md](mvp-stories.md), [api-design.md](api-design.md), [permission-matrix.md](permission-matrix.md)
 Window: **Week 3–7** (25 working days, +1 minggu vs original karena mobile-equal)
 
 ---
 
-## Status: 🟡 Slicing complete (in-memory)
+## Status: 🟡 Slicing + DB schema done
 
-Phase 1 dijalankan dengan **slicing-first workflow** (lihat memory feedback-slicing-first):
-1. ✅ Semua UI feature flows dibangun pakai `zustand` + `persist` (localStorage)
-2. ✅ Backend per-feature folders (db, service, router) di-scaffold sebagai stub `TODO(phase-1)`
-3. ⏳ Wiring real tRPC + Drizzle: deferred sampai semua phase sliced
+Phase 1 dijalankan dengan **slicing-first workflow**:
+1. ✅ Semua UI feature flows pakai `zustand` + `persist` (localStorage)
+2. ✅ **Drizzle tables semua Phase 0+1 features di-define + migrated ke local Postgres** (auth, workspace, category, owner-label, tag, asset, valuation, attachment, activity, sharing, currency = 20 tabel)
+3. ⏳ tRPC services + routers per feature: belum dibuat
+4. ⏳ UI wiring ke tRPC + DB: belum (UI masih baca/tulis zustand)
 
-Setiap group di bawah ditandai berdasar slicing status, bukan backend wiring.
+Migration command: `pnpm db:generate` + `pnpm db:migrate`.
+Setiap group di bawah ditandai berdasar slicing + schema status.
 
 ---
 
@@ -288,5 +290,6 @@ Buffer untuk:
 
 ## Changelog
 
+- 0.3 — Drizzle schema done untuk semua Phase 0+1 features (auth via better-auth CLI, workspace/category/owner/tag/asset/activity/currency manually written). 20 tabel migrated ke local Postgres. tRPC services + UI wiring belum.
 - 0.2 — Slicing pass complete. All 9 groups marked done at in-memory level (zustand store + persist). Backend per-feature folders contain stub TODO files. Wiring real Drizzle + tRPC deferred until all phases sliced (slicing-first workflow).
 - 0.1 — Initial Phase 1 checklist. 25-day plan, 17 stories.

@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { redis } from './redis';
 
 const DEFAULT_TTL_SECONDS = 60;

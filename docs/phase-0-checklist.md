@@ -2,7 +2,7 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.4
+Version: 0.5
 Source: [tech-stack.md](tech-stack.md) section 15
 Target window: **Week 1–2** (10 working days)
 
@@ -17,8 +17,8 @@ Target window: **Week 1–2** (10 working days)
 | 2. Next.js + TS | ✅ done | Next.js 16.2.6 (bukan 15, latest stable saat init) |
 | 3. Biome + lefthook | ✅ done | Biome 2.4.15 |
 | 4. Tailwind + shadcn/ui | 🟡 partial | `form` component belum ke-install |
-| 5. Drizzle + Neon | 🟡 scaffold | Client + aggregator skeleton; butuh `DATABASE_URL` untuk migrate |
-| 6. better-auth | 🟡 scaffold | Config + email handler wired; butuh DB untuk generate tables |
+| 5. Drizzle + local Postgres | ✅ done | Schema lengkap semua phase. Migration generated + applied via `pnpm db:migrate`. Driver: postgres-js (works untuk local + Neon + Supabase + RDS) |
+| 6. better-auth | ✅ done | Config + Drizzle schema (user/session/account/verification) generated via `@better-auth/cli` ke `features/auth/server/db.ts`. Email handler wired |
 | 7. tRPC v11 | ✅ done | Root router, middleware base, provider wired |
 | 8. Zod schemas | 🟡 partial | Zod installed; common types + per-feature schemas Phase 1+ |
 | 9. R2 client | 🟡 scaffold | Helper functions ready; butuh creds untuk test |
@@ -163,14 +163,14 @@ button, card, input, label, dialog, dropdown-menu, badge, table, tabs, sonner, s
 - `features/currency/server/db.ts`
 
 **Acceptance**:
-- [x] `drizzle-kit` scripts wired (`db:generate`, `db:push`, `db:migrate`, `db:studio`)
-- [x] `src/server/db.ts` aggregator skeleton
-- [ ] **Pending DATABASE_URL**: `drizzle-kit generate` produces migration file
-- [ ] **Pending DATABASE_URL**: `drizzle-kit push` apply ke Neon
-- [ ] **Pending DATABASE_URL**: `select 1` test query sukses
-- [ ] **Phase 1+**: All FK constraints aktif setelah feature schemas ada
-- [ ] **Phase 1+**: Indexes ERD section 5 created
-- [ ] **Phase 1+**: GIN index custom_fields, name trigram aktif
+- [x] `drizzle-kit` scripts wired (`db:generate`, `db:push`, `db:migrate`, `db:studio`, `db:check`)
+- [x] `src/server/db.ts` aggregator (re-exports 11 feature schemas)
+- [x] Driver: postgres-js (works local Docker + Neon + Supabase)
+- [x] `drizzle-kit generate` produces migration file (20 tables)
+- [x] `drizzle-kit migrate` apply ke DB local sukses
+- [x] FK constraints aktif (workspace cascade, user restrict on owner, dll)
+- [x] Indexes ERD section 5 created
+- [ ] GIN index custom_fields, name trigram → manual SQL Phase 6 polish (Drizzle belum support partial GIN expression elegant)
 
 **Est**: 1 day · **Actual**: scaffold done; full implementation Phase 1+
 
@@ -192,15 +192,17 @@ button, card, input, label, dialog, dropdown-menu, badge, table, tabs, sonner, s
 - [x] Session strategy: database, 7 hari, cookie cache 5 min
 - [x] Additional field user: `avatar_url`
 - [x] `sendVerificationEmail` + `sendResetPassword` wired ke Resend
+- [x] better-auth Drizzle schema generated ke `features/auth/server/db.ts` (user, session, account, verification)
+- [x] Migration applied — auth tables live di DB
 
 **Acceptance**:
 - [x] Config scaffolded + email hooks wired
-- [ ] **Pending DATABASE_URL**: run `pnpm dlx @better-auth/cli generate --output src/features/auth/server/db.ts` untuk generate tables
-- [ ] **Pending DATABASE_URL**: `drizzle-kit push` apply better-auth tables
-- [ ] **Pending**: Register endpoint return user (butuh DB)
-- [ ] **Pending**: Login + session cookie set (butuh DB)
-- [ ] **Pending**: Email verification token generated + email terkirim
-- [ ] **Pending**: Session callback inject user.id ke tRPC context
+- [x] `pnpm dlx @better-auth/cli generate` sukses
+- [x] `drizzle-kit migrate` apply better-auth tables
+- [ ] Register endpoint return user — butuh UI rewire ke better-auth client (saat ini pakai zustand mock)
+- [ ] Login + session cookie set — saat UI wire
+- [ ] Email verification token + email terkirim — saat UI wire + RESEND_API_KEY
+- [ ] Session callback inject user.id ke tRPC context — saat tRPC procedure pertama dibuat
 
 **Est**: 4 hours · **Actual**: scaffold done; verification butuh DB
 
@@ -546,6 +548,7 @@ User-driven setup (lihat SETUP.md section 3.8):
 
 ## Changelog
 
+- 0.5 — Backend schema applied. better-auth tables generated. 20 Drizzle tables (auth, workspace, category, owner-label, tag, asset, valuation, attachment, activity, sharing, currency) committed + migrated to local Postgres via postgres-js driver. `src/server/db.ts` aggregator imports all feature schemas. Step 5 + 6 marked done.
 - 0.4 — Step 17 UI slicing complete: 22 routes (auth group, app, workspace area, public share), 3 layouts (auth/app/workspace), 6 shared components (AuthCard, PageHeader, EmptyState, AppTopbar, WorkspaceSidebar, WorkspaceSwitcher). typedRoutes disabled untuk Phase 1 (re-enable Phase 6). Resend lazy init untuk build dengan placeholder env.
 - 0.3 — Status mark-up per step. Reality: step 1-4 done, 7+10+14+16 done, step 5/6/9/11/12 scaffolded (butuh credentials), step 13/15/17 pending. shadcn `form` belum installed (TODO step 4). Common Zod types deferred ke Phase 1.
 - 0.2 — Update file path Step 4-8 ke feature-first layout: `src/shared/ui/`, `src/shared/utils/cn.ts`, `src/server/db.ts` aggregator, `src/server/auth.ts`, `src/server/trpc.ts`, per-feature `features/<name>/server/db.ts`. Drop clean-arch 8-layer.

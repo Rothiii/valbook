@@ -5,7 +5,9 @@ if (!process.env.DATABASE_URL) {
 }
 
 export default defineConfig({
-  schema: './src/server/db.ts',
+  // Glob picks up every feature db.ts so drizzle-kit sees direct pgTable
+  // exports (it inspects exported tables, spread re-exports do not count).
+  schema: './src/features/**/server/db.ts',
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
@@ -13,4 +15,5 @@ export default defineConfig({
   },
   verbose: true,
   strict: true,
+  casing: 'snake_case',
 });

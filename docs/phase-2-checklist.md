@@ -2,13 +2,15 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.2
+Version: 0.3
 Source: [mvp-stories.md](mvp-stories.md), [api-design.md](api-design.md), [permission-matrix.md](permission-matrix.md)
 Window: **Week 8–12** (25 working days)
 
 ## Status: 🟡 Slicing complete (in-memory)
 
 Phase 2 dijalankan dengan **slicing-first workflow**. Backend wiring deferred.
+
+**Third-party**: Resend (invitation email) dipindah ke [phase-7-checklist.md](phase-7-checklist.md). Phase 2 backend wiring → kirim invitation via `sendEmail` helper yang console-log di local mode (Phase 7 swap ke Resend tanpa ubah call site).
 
 ---
 
@@ -148,7 +150,7 @@ E2E test berlaku setelah DB connected. Slicing-only saat ini tidak butuh.
 - [ ] Multi-user collaboration end-to-end working
 - [ ] Dynamic schema validation robust
 - [ ] Hierarchy depth 5 supported tanpa perf degradation
-- [ ] Email invitation reliable (test domain reputation Resend)
+- [ ] Email invitation reliable (local: log console; Resend → Phase 7)
 - [ ] Permission test 100% coverage
 - [ ] Mobile + desktop polished
 - [ ] CI green
@@ -174,7 +176,7 @@ E2E test berlaku setelah DB connected. Slicing-only saat ini tidak butuh.
 | Dynamic schema validation kompleks | Pakai zod runtime build, test edge case awal |
 | Field rename / delete data loss | Strict block delete, label-only edit |
 | Hierarchy circular ref bug | Recursive check + DB constraint via trigger backup |
-| Email deliverability | Setup DKIM, SPF, DMARC, monitor bounce rate Resend |
+| Email deliverability | → Phase 7 (DKIM/SPF/DMARC via Resend) |
 | Member email mismatch confusion | Clear error UI + docs |
 | Race condition role change | Optimistic + retry pada client, server final say |
 

@@ -2,8 +2,14 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.3
+Version: 0.4
 Source: cross-doc decisions from [erd.md](erd.md), [api-design.md](api-design.md), [mvp-stories.md](mvp-stories.md), [permission-matrix.md](permission-matrix.md), [ux-flows.md](ux-flows.md)
+
+---
+
+## Strategy: Local-First → Third-Party Last
+
+MVP (Phase 0-6) jalan **murni lokal** — tidak butuh akun SaaS apa pun. Semua third-party SaaS (Neon, Cloudflare R2, Resend, Upstash, Sentry, Vercel) di-swap di [phase-7-checklist.md](phase-7-checklist.md) (Super Last Phase). Existing API surface di `shared/lib/*` (`saveFile`, `sendEmail`, `cacheGet`, `checkRateLimit`) tidak vendor-specific — Phase 7 cukup ubah implementation di balik, app code tidak berubah.
 
 ---
 
@@ -22,20 +28,20 @@ Source: cross-doc decisions from [erd.md](erd.md), [api-design.md](api-design.md
 | **API (internal)** | tRPC v11 | Type-safe RPC |
 | **API (public)** | Next.js Route Handlers | REST untuk public share + webhooks |
 | **Auth** | better-auth | Sessions, OAuth, email verify, password reset |
-| **DB** | PostgreSQL 16 (managed by Neon) | Primary data store |
-| **ORM** | Drizzle ORM | TS-native query builder + migrations |
-| **Object storage** | Cloudflare R2 | Attachment files |
-| **Email** | Resend + React Email | Transactional email |
-| **Cache + rate limit** | Upstash Redis | Aggregations cache + rate limiter |
-| **Background jobs** | Vercel Cron | Rate refresh, cleanup, scheduled tasks |
+| **DB** | PostgreSQL 17 (local DBngin) → Neon (Phase 7) | Primary data store |
+| **ORM** | Drizzle ORM (postgres-js driver) | TS-native query builder + migrations |
+| **Object storage** | Local `public/uploads/` FS → Cloudflare R2 (Phase 7) | Attachment files |
+| **Email** | React Email templates + console log → Resend (Phase 7) | Transactional email |
+| **Cache + rate limit** | In-memory Map → Upstash Redis (Phase 7) | Aggregations cache + rate limiter |
+| **Background jobs** | Stub endpoint → Vercel Cron (Phase 7) | Rate refresh, cleanup, scheduled tasks |
 | **Charts** | Recharts | Valuation + dashboard charts |
 | **Date** | date-fns | Date formatting + manipulation |
 | **i18n** | next-intl | Locale routing, ID + EN |
-| **Hosting** | Vercel | Edge + serverless deploy |
-| **Monitoring** | Sentry | Error tracking + perf |
-| **Analytics** | Vercel Analytics | Page view + web vitals |
-| **Logs** | Vercel built-in + pino | Structured |
-| **CI/CD** | GitHub Actions + Vercel | Lint, typecheck, test, deploy |
+| **Hosting** | `pnpm dev` localhost → Vercel (Phase 7) | Edge + serverless deploy |
+| **Monitoring** | Sentry no-op → Sentry full (Phase 7) | Error tracking + perf |
+| **Analytics** | Console events → Vercel Analytics (Phase 7) | Page view + web vitals |
+| **Logs** | pino structured (console) → + Vercel built-in (Phase 7) | Structured |
+| **CI/CD** | GitHub Actions → + Vercel (Phase 7) | Lint, typecheck, test, deploy |
 | **Linter/Formatter** | Biome | Faster than ESLint+Prettier |
 | **Git hooks** | lefthook | Pre-commit checks |
 | **Pkg manager** | pnpm | Monorepo-friendly, fast install |

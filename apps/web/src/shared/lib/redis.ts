@@ -1,6 +1,10 @@
 import { Redis } from '@upstash/redis';
 
-export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL ?? 'https://placeholder.upstash.io',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN ?? 'placeholder',
-});
+const url = process.env.UPSTASH_REDIS_REST_URL;
+const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+export const isUpstashConfigured = Boolean(url && token);
+
+export const redis = isUpstashConfigured
+  ? new Redis({ url: url as string, token: token as string })
+  : null;

@@ -2,7 +2,7 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.6
+Version: 0.7
 Source: [tech-stack.md](tech-stack.md) section 15
 Target window: **Week 1–2** (10 working days)
 
@@ -12,24 +12,24 @@ Target window: **Week 1–2** (10 working days)
 
 | Step | Status | Note |
 |---|---|---|
-| Pre-flight | 🟡 partial | GitHub + local env ✅, akun eksternal user TODO |
+| Pre-flight | ✅ done | Local-only: DBngin Postgres + Node + pnpm. Akun eksternal (Neon, R2, Resend, Upstash, Sentry, Vercel) ditunda ke Phase 7 |
 | 1. Repo + pnpm workspace | ✅ done | |
 | 2. Next.js + TS | ✅ done | Next.js 16.2.6 (bukan 15, latest stable saat init) |
 | 3. Biome + lefthook | ✅ done | Biome 2.4.15 |
 | 4. Tailwind + shadcn/ui | ✅ done | `form` installed; ThemeProvider (next-themes) wired di RootLayout |
-| 5. Drizzle + local Postgres | ✅ done | Schema lengkap semua phase. Migration generated + applied via `pnpm db:migrate`. Driver: postgres-js (works untuk local + Neon + Supabase + RDS) |
+| 5. Drizzle + local Postgres | ✅ done | Schema lengkap semua phase. Migration generated + applied via `pnpm db:migrate`. Driver: postgres-js (universal: local + Neon/Supabase di Phase 7) |
 | 6. better-auth | ✅ done | Config + Drizzle schema generated. Email verification disabled (autoSignIn aktif); verify badge + resend button di /account |
 | 7. tRPC v11 | ✅ done | Root router, middleware base, provider wired |
 | 8. Zod schemas | ✅ done | Common types di `shared/types/common.ts`. Per-feature schemas Phase 1+ |
-| 9. R2 client | 🟡 scaffold | Helper functions ready; butuh creds untuk test |
-| 10. Resend + emails | ✅ done | Client + 3 templates (verify, reset, invitation) |
-| 11. Upstash Redis | 🟡 scaffold | Rate limit + cache ready; butuh creds untuk test |
-| 12. Sentry | 🟡 scaffold | Init no-op tanpa DSN |
-| 13. Vercel project | ⏳ pending | User-driven setup |
+| 9. Storage (local FS) | ✅ done | `public/uploads/` filesystem storage. R2 dipindah ke Phase 7 |
+| 10. Email templates | ✅ done | 3 templates + local-mode console log. Resend dipindah ke Phase 7 |
+| 11. Cache + rate limit | ✅ done | In-memory Map fallback. Upstash dipindah ke Phase 7 |
+| 12. Sentry | ✅ done | Init no-op tanpa DSN. Full wiring dipindah ke Phase 7 |
+| 13. Deploy | → Phase 7 | Vercel + domain setup dipindah ke Phase 7 |
 | 14. GitHub Actions CI | ✅ done | Lint + typecheck + build green |
 | 15. Seed data | ⏳ pending | Butuh DB + workspace_templates schema (Phase 1) |
-| 16. Cron job | ✅ stub | Route + vercel.json wired; logic Phase 3 |
-| 17. First E2E flow | 🟡 UI sliced | Semua Phase 1 page skeleton done; data wiring butuh DB |
+| 16. Cron job | ✅ stub | Route wired; logic Phase 3 (seed-only), live API Phase 7 |
+| 17. First E2E flow | 🟡 UI sliced | Semua Phase 1 page skeleton done; data wiring di Phase 1+ |
 
 Legend: ✅ done · 🟡 scaffolded (butuh credentials atau dependency) · ⏳ pending
 
@@ -41,19 +41,32 @@ Phase 0 = setup tanpa fitur user-facing. Output: skeleton project ready untuk Ph
 
 ---
 
-## Pre-flight (Day 0)
+## Strategy: Local-First, Third-Party Last
 
-Setup akun sebelum mulai code. Lihat [../SETUP.md](../SETUP.md) untuk step-by-step.
+MVP (phase 0-6) jalan lokal pakai stack di bawah ini. Semua third-party SaaS (Neon, Cloudflare R2, Resend, Upstash, Sentry, Vercel) ditunda ke [phase-7-checklist.md](phase-7-checklist.md). Phase 7 = swap implementation di balik existing API surface — kode app-level tidak berubah.
+
+| Layer | Local (Phase 0-6) | Production (Phase 7) |
+|---|---|---|
+| Database | DBngin Postgres 17 @ localhost:5432 via postgres-js | Neon (atau Supabase) |
+| File storage | `public/uploads/` filesystem | Cloudflare R2 (presigned URLs) |
+| Email | `[email:local-mode]` console log | Resend |
+| Cache | In-memory `Map` dengan TTL | Upstash Redis |
+| Rate limit | In-memory sliding window | Upstash Ratelimit |
+| Error monitoring | Sentry no-op (DSN kosong) | Sentry full sampling |
+| Cron | Stub endpoint | Vercel cron `0 */6 * * *` |
+| Hosting | `pnpm dev` localhost:3000 | Vercel + custom domain |
+
+---
+
+## Pre-flight (Day 0) — MVP Local
+
+Setup minimal untuk MVP local-only. Lihat [../SETUP.md](../SETUP.md) untuk step-by-step.
 
 - [x] **GitHub repo** — https://github.com/Rothiii/valbook
-- [ ] **Vercel account** — connect ke GitHub
-- [ ] **Neon account** — create project `valbook`, get connection string
-- [ ] **Cloudflare R2** — create account, buckets `valbook-dev` + `valbook-prod`, API token
-- [ ] **Resend account** — API key + domain verification
-- [ ] **Upstash account** — Redis REST URL + token
-- [ ] **Sentry account** — project `valbook-web`, DSN
-- [ ] **Domain** (optional Phase 0)
 - [x] **Local env** — Node 22 LTS, pnpm 10
+- [x] **Local Postgres** — DBngin Postgres 17 di localhost:5432
+
+**Akun eksternal SaaS → dipindah ke [phase-7-checklist.md](phase-7-checklist.md)**: Vercel, Neon/Supabase, Cloudflare R2, Resend, Upstash, Sentry, domain
 
 ---
 
@@ -255,58 +268,59 @@ button, card, input, label, dialog, dropdown-menu, badge, table, tabs, sonner, s
 
 ---
 
-## Step 9: R2 client 🟡
+## Step 9: Storage (local FS) ✅
 
-**Goal**: object storage signed URL.
+**Goal**: file storage helper untuk MVP, simpan ke `public/uploads/` lokal. Cloudflare R2 dipindah ke [phase-7-checklist.md](phase-7-checklist.md) (Production Wiring).
 
 **Files**:
-- `apps/web/src/shared/lib/r2.ts` — S3 client + helpers
+- `apps/web/src/shared/lib/storage.ts` — local filesystem helper (writeFile/unlink)
+- `apps/web/public/uploads/.gitignore` — gitignore semua isi kecuali dirinya sendiri
 
 **Functions**:
-- [x] `getUploadUrl({ key, contentType, sizeBytes })` — 10 min expiry
-- [x] `getDownloadUrl(key)` — 5 min expiry
-- [x] `deleteObject(key)`
+- [x] `saveFile({ buffer, contentType, workspaceId, originalName })` → `{ key, url, sizeBytes }`
+- [x] `getFileUrl(key)` → `/uploads/<workspace>/<filename>`
+- [x] `deleteFile(key)` (guard: refuse delete outside uploads dir)
 - [x] Mime allowlist (image, pdf, doc, xls, csv, txt)
 - [x] Max file size 25MB
 
 **Acceptance**:
 - [x] Helpers exported + typed
-- [ ] **Pending R2 creds**: PUT file via curl sukses
-- [ ] **Pending R2 creds**: GET via signed URL sukses, expire 5 min later
-- [ ] **Pending R2 setup**: Bucket CORS configured
+- [x] Local file persist di `apps/web/public/uploads/<workspaceId>/<uuid>-<name>`
+- [x] URL path serve langsung via Next.js static (`/uploads/...`)
+- [ ] **Phase 7**: swap implementation ke R2/S3 (env-gated, same API surface)
 
-**Est**: 3 hours · **Actual**: scaffold done
+**Est**: 3 hours · **Actual**: done
 
 ---
 
-## Step 10: Resend + React Email ✅
+## Step 10: Email templates ✅
 
-**Goal**: email send setup.
+**Goal**: email render setup. Resend provider dipindah ke [phase-7-checklist.md](phase-7-checklist.md). Local mode: log preview ke console (no-op).
 
 **Files**:
-- [x] `apps/web/src/shared/lib/email.ts` — Resend client + `sendEmail` helper
+- [x] `apps/web/src/shared/lib/email.ts` — `sendEmail` helper: log preview kalau `RESEND_API_KEY` kosong, lazy-import Resend kalau ada
 - [x] `apps/web/src/emails/verify-email.tsx`
 - [x] `apps/web/src/emails/invitation.tsx`
 - [x] `apps/web/src/emails/password-reset.tsx`
 
 **Acceptance**:
 - [x] Template render HTML + plaintext
-- [x] Wired ke better-auth email hooks
-- [ ] **Pending Resend creds**: send test email sukses
-- [ ] **Pending production**: domain verification + DKIM
+- [x] Wired ke better-auth email hooks (verify + reset disabled by default; verify on-demand di /account)
+- [x] Local mode log `[email:local-mode]` ke console — gak ada error
+- [ ] **Phase 7**: Resend API key wired + domain verification + DKIM
 
 **Est**: 4 hours · **Actual**: done
 
 ---
 
-## Step 11: Upstash Redis 🟡
+## Step 11: Cache + rate limit (in-memory fallback) ✅
 
-**Goal**: rate limit + cache.
+**Goal**: cache + rate limit primitives. Upstash Redis dipindah ke [phase-7-checklist.md](phase-7-checklist.md). Local mode: in-memory Map.
 
 **Files**:
-- [x] `apps/web/src/shared/lib/redis.ts` — Upstash client
-- [x] `apps/web/src/shared/lib/rate-limit.ts` — 8 rate limit configs
-- [x] `apps/web/src/shared/lib/cache.ts` — get/set/invalidate/orFetch
+- [x] `apps/web/src/shared/lib/redis.ts` — Upstash client kalau env set, kalau enggak `redis = null` + `isUpstashConfigured = false`
+- [x] `apps/web/src/shared/lib/rate-limit.ts` — `checkRateLimit(name, identifier)` — sliding window in-memory Map kalau no creds, Upstash Ratelimit kalau ada
+- [x] `apps/web/src/shared/lib/cache.ts` — `cacheGet/Set/Invalidate/OrFetch` — Map dengan TTL kalau no creds
 
 **Rate limit configs** (per api-design.md section 8):
 - [x] signUp (5/hour/IP), signIn (10/15min/IP)
@@ -316,17 +330,17 @@ button, card, input, label, dialog, dropdown-menu, badge, table, tabs, sonner, s
 
 **Acceptance**:
 - [x] Configs typed + exported
-- [ ] **Pending Upstash creds**: Redis connection sukses dari serverless
+- [x] Local in-memory mode jalan tanpa Upstash creds — single-process only (cache + rate-limit reset di restart)
 - [ ] **Phase 1+**: Rate limit middleware wired di tRPC procedure pertama
-- [ ] **Phase 3+**: Cache hit/miss tracked di dashboard
+- [ ] **Phase 7**: Upstash creds wired untuk multi-instance (Vercel)
 
-**Est**: 3 hours · **Actual**: scaffold done
+**Est**: 3 hours · **Actual**: done
 
 ---
 
-## Step 12: Sentry SDK 🟡
+## Step 12: Sentry SDK (no-op local) ✅
 
-**Goal**: error monitoring.
+**Goal**: error monitoring scaffolded. Sentry full wiring dipindah ke [phase-7-checklist.md](phase-7-checklist.md). Local mode: init guarded by DSN, no-op kalau kosong.
 
 **Files**:
 - [x] `apps/web/sentry.client.config.ts`
@@ -337,37 +351,22 @@ button, card, input, label, dialog, dropdown-menu, badge, table, tabs, sonner, s
 **Config**:
 - [x] No-op kalau DSN tidak set (dev local quiet)
 - [x] Sampling: 10% transactions, 100% errors
-- [ ] **Phase 6**: Source map upload di CI (butuh auth token)
-- [ ] **Phase 6**: Release tracking dari git SHA
+- [ ] **Phase 7**: Source map upload di CI (butuh auth token)
+- [ ] **Phase 7**: Release tracking dari git SHA
 
 **Acceptance**:
 - [x] Init guarded by DSN presence
-- [ ] **Pending Sentry creds**: test exception capture muncul di dashboard
+- [ ] **Phase 7**: test exception capture muncul di dashboard
 
 **Est**: 2 hours · **Actual**: scaffold done
 
 ---
 
-## Step 13: Vercel project + env ⏳
+## Step 13: Deploy → moved to Phase 7
 
-**Goal**: deploy preview.
+Vercel project + env + domain setup → [phase-7-checklist.md](phase-7-checklist.md) (Production Wiring).
 
-User-driven setup (lihat SETUP.md section 3.8):
-
-- [ ] Create Vercel project, connect repo
-- [ ] Set root dir: `apps/web`
-- [ ] Set build command sesuai SETUP.md
-- [ ] Add semua env vars dari .env.example
-- [ ] Setup Neon branch creation pada preview deploy
-- [ ] Connect domain (kalau ada)
-
-**Acceptance**:
-- [ ] Push ke main → deploy sukses
-- [ ] PR → preview deploy sukses
-- [ ] Env var aktif di production
-- [ ] Vercel Analytics aktif
-
-**Est**: 2 hours · **Status**: pending user setup
+MVP development jalan lokal: `pnpm dev` di port 3000, DB di DBngin Postgres 17 (`localhost:5432`). Tidak ada deploy preview sampai semua phase 1-6 selesai.
 
 ---
 
@@ -423,26 +422,25 @@ User-driven setup (lihat SETUP.md section 3.8):
 
 ---
 
-## Step 16: Initial cron job ✅
+## Step 16: Initial cron job (stub) ✅
 
-**Goal**: rate refresh skeleton.
+**Goal**: cron route skeleton. Scheduler (Vercel cron) + external rate APIs (Frankfurter, CoinGecko) dipindah ke [phase-7-checklist.md](phase-7-checklist.md). Phase 3 implementasi pakai builtin seed rates dulu.
 
 **Files**:
 - [x] `apps/web/app/api/webhooks/cron/rate-refresh/route.ts` — stub dengan CRON_SECRET check
-- [x] `apps/web/vercel.json` — schedule `0 */6 * * *`
+- [x] `apps/web/vercel.json` — schedule `0 */6 * * *` (aktif saat deploy)
 
 **Logic**:
 - [x] Verify `X-Cron-Secret` header
-- [ ] **Phase 3**: Fetch fiat dari frankfurter.app
-- [ ] **Phase 3**: Fetch crypto dari CoinGecko
+- [ ] **Phase 3**: load rates dari builtin JSON seed (Frankfurter + CoinGecko fetch ditunda ke Phase 7)
 - [ ] **Phase 3**: Upsert ke `exchange_rates`
+- [ ] **Phase 7**: Fetch live rates dari frankfurter.app + CoinGecko via cron
 
 **Acceptance**:
 - [x] Schedule registered di vercel.json
 - [x] Route handler responds dengan secret check
-- [ ] **Phase 3**: Full implementation
-
-**Est**: 3 hours · **Actual**: stub done
+- [ ] **Phase 3**: Seed-only implementation
+- [ ] **Phase 7**: Live API fetch
 
 ---
 
@@ -512,28 +510,31 @@ User-driven setup (lihat SETUP.md section 3.8):
 | Day | Steps | Status |
 |---|---|---|
 | Day 1 | 1, 2, 3 | ✅ done |
-| Day 2 | 4, 5 (partial) | ✅ done |
-| Day 3 | 5 (finish) | 🟡 scaffold only (butuh DB) |
-| Day 4 | 6, 7 | 🟡 6 scaffold, 7 done |
-| Day 5 | 8, 9 | 🟡 partial |
-| Day 6 | 10, 11 | 🟡 10 done, 11 scaffold |
-| Day 7 | 12, 13, 14 | 🟡 12 scaffold, 14 done |
-| Day 8 | 15, 16 | 🟡 16 done, 15 deferred |
-| Day 9 | 17 (start) | ⏳ slicing UI |
-| Day 10 | 17 (finish + buffer) | ⏳ |
+| Day 2 | 4, 5 | ✅ done |
+| Day 3 | 6, 7 | ✅ done (verify on-demand, root router split) |
+| Day 4 | 8, 9 | ✅ done (common types + local FS storage) |
+| Day 5 | 10, 11 | ✅ done (email console log + in-memory cache/rate-limit) |
+| Day 6 | 12, 14 | ✅ done (Sentry no-op, CI green) |
+| Day 7 | 13 (Vercel) | → Phase 7 |
+| Day 8 | 15, 16 | 🟡 16 stub done, 15 deferred ke Phase 1 |
+| Day 9 | 17 (start) | 🟡 slicing UI |
+| Day 10 | 17 (finish + buffer) | 🟡 UI bind ke tRPC menyusul |
 
 ---
 
 ## Definition of Done — Phase 0
 
-- [x] Phase 0 step 1-4, 7, 10, 14, 16 fully done
+- [x] Phase 0 step 1-12, 14, 16 done dengan local-only fallback (no external creds required)
 - [x] Step 17 UI slicing done (22 routes + 3 layouts + 6 shared components)
-- [ ] Step 5, 6, 9, 11, 12 verified setelah user setup external accounts
-- [ ] Step 13 deploy preview running
+- [x] Step 5 DB live di local Postgres
+- [x] Step 6 register + login + session via better-auth (autoSignIn, verify on-demand)
+- [x] Step 9 storage local FS (`public/uploads/`)
+- [x] Step 10 email log ke console (Resend ditunda Phase 7)
+- [x] Step 11 cache + rate-limit in-memory
+- [x] Step 12 Sentry no-op
 - [ ] Step 15 seed data jalan (Phase 1)
-- [ ] Step 17 wiring: register + verify + login + create workspace working E2E
-- [ ] Empty workspace dashboard load di desktop + mobile (verified)
-- [ ] CI/CD green untuk PR + main (verify setelah first PR push)
+- [ ] Step 17 wiring: register → create workspace → empty dashboard E2E (Phase 1)
+- [ ] Step 13 + 16 live API + deploy → Phase 7
 - [ ] Tidak ada TODO P0 blocker untuk Phase 1
 
 ---
@@ -542,17 +543,19 @@ User-driven setup (lihat SETUP.md section 3.8):
 
 | Risk | Mitigation | Status |
 |---|---|---|
-| Neon connection pooling issue di Vercel edge | Pakai HTTP driver `@neondatabase/serverless` | ✅ implemented |
+| Postgres connection pool exhaustion di Vercel edge | Driver `postgres-js` dengan pool size; switch ke Neon HTTP driver di Phase 7 | ✅ implemented |
 | better-auth Drizzle adapter quirk | Pin version, test register flow awal | ⏳ test pending |
-| R2 CORS untuk direct upload | Set CORS origin di R2 settings | ⏳ user setup |
-| Resend domain verification lambat | Setup DNS lebih awal | ⏳ Phase 6 launch |
+| In-memory cache + rate-limit hilang di restart | Local single-process OK; Phase 7 swap ke Upstash untuk multi-instance | ✅ documented |
+| Local FS storage hilang di redeploy | Phase 7 swap ke R2; local-only sampai Phase 7 ready | ✅ documented |
+| Email console log gak terlihat user | Phase 7 wire Resend; verify on-demand sudah disabled blocker | ✅ documented |
 | Drizzle migration drift | Selalu `generate` + commit migration file | ✅ workflow ready |
-| Vercel build time | Cache pnpm store + Next.js cache enabled | ✅ CI configured |
+| Phase 7 vendor lock-in | API surface (`saveFile`, `cacheGet`, `checkRateLimit`, `sendEmail`) tidak berubah saat swap impl | ✅ designed |
 
 ---
 
 ## Changelog
 
+- 0.7 — **Local-first refactor**. Semua third-party SaaS (Cloudflare R2, Resend, Upstash, Sentry, Vercel, Neon, Frankfurter, CoinGecko) dipindah ke baru [phase-7-checklist.md](phase-7-checklist.md). Step 9 R2 swap → local FS (`public/uploads/`) via `shared/lib/storage.ts`. Step 10 Resend → console log (`[email:local-mode]`) saat `RESEND_API_KEY` kosong, lazy-import provider kalau ada. Step 11 Upstash → in-memory `Map` + sliding window untuk cache + rate-limit; Upstash kena pakai kalau `UPSTASH_REDIS_REST_URL` set. Step 13 Vercel dipindah seluruhnya ke Phase 7. Step 16 cron stub tetap; live API fetch ditunda. `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` di-drop dari deps. Duplicate `shared/lib/auth-client.ts` dihapus (yang asli di `features/auth/auth-client.ts`). Pre-flight section sekarang local-only. Step 4, 9-12 marked done.
 - 0.6 — Backend wiring landed: workspace tRPC router (list/get/create/update/delete/membership) + service layer (template materialize, activity log). Better-auth client SDK menggantikan zustand auth mock (register/login/logout/verify/forgot-password/reset-password/updateProfile semua via `authClient`). Email verification disabled — register langsung sign-in (autoSignIn). `/account` menampilkan `EmailVerificationCard` (badge Verified/Unverified + tombol Send verification email). Common Zod types di `shared/types/common.ts`. tRPC middleware lengkap (workspaceProcedure, editorProcedure, ownerProcedure). Root router di `src/server/router.ts` memutus circular import. ThemeProvider (next-themes) wired di RootLayout. Step 4, 6, 7, 8 marked done.
 - 0.5 — Backend schema applied. better-auth tables generated. 20 Drizzle tables (auth, workspace, category, owner-label, tag, asset, valuation, attachment, activity, sharing, currency) committed + migrated to local Postgres via postgres-js driver. `src/server/db.ts` aggregator imports all feature schemas. Step 5 + 6 marked done.
 - 0.4 — Step 17 UI slicing complete: 22 routes (auth group, app, workspace area, public share), 3 layouts (auth/app/workspace), 6 shared components (AuthCard, PageHeader, EmptyState, AppTopbar, WorkspaceSidebar, WorkspaceSwitcher). typedRoutes disabled untuk Phase 1 (re-enable Phase 6). Resend lazy init untuk build dengan placeholder env.

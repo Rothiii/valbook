@@ -2,13 +2,15 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.2
+Version: 0.3
 Source: [mvp-stories.md](mvp-stories.md), [api-design.md](api-design.md)
 Window: **Week 13–14** (10 working days)
 
 ## Status: 🟡 Slicing complete (in-memory)
 
 Slicing-first workflow. Backend wiring deferred.
+
+**Third-party**: Frankfurter + CoinGecko (live rate fetch) dan Upstash (dashboard cache) dipindah ke [phase-7-checklist.md](phase-7-checklist.md). Phase 3 backend pakai builtin seed rates JSON + workspace manual override + in-memory cache (sudah ada di `shared/lib/cache.ts`). Phase 7 swap cache ke Upstash + cron live fetch.
 
 - ✅ Group 3.1 Valuation entry (CRUD + activity log + auto-update asset current value)
 - ✅ Group 3.2 Valuation chart (recharts Line chart, needs ≥2 entries)
@@ -125,19 +127,19 @@ Total: 15 stories (10 P0, 5 P1).
 
 ### Group 3.4 — Currency Rate Backend (Day 7)
 
-- [ ] Cron rate-refresh harden:
-  - Fetch fiat dari frankfurter.app (base EUR or USD)
-  - Fetch crypto dari CoinGecko (top 50 list)
-  - Upsert dengan `valid_from = now()`, `source = 'api'`
-  - Handle API failure gracefully (log, retry next cycle)
+**MVP (Phase 3): builtin seed only**
+- [ ] Seed `exchange_rates` dari `apps/web/src/server/seed/rates.json` (~30 fiat + top 20 crypto, source=`'seed'`, valid_from fixed)
 - [ ] tRPC `currency.getRates({ baseCurrency })` query latest per pair
 - [ ] tRPC `currency.manualOverride({ workspaceSlug, from, to, rate })` — workspace-scoped manual rate
-- [ ] Helper `convertCurrency(amount, from, to, atDate?)` → use manual if exist, else API rate
+- [ ] Helper `convertCurrency(amount, from, to, atDate?)` → use manual if exist, else seed rate
+- [ ] Cron stub di Phase 0 jalan tapi gak fetch live (TODO Phase 7)
 
 **Acceptance**:
-- [ ] Cron run manual sukses, populate ≥30 currency rate
+- [ ] Seed populate ≥30 currency rate
 - [ ] Manual override per workspace tidak affect workspace lain
 - [ ] Convert helper akurat (test fiat↔fiat, fiat↔crypto)
+
+**→ Phase 7**: Live rate fetch dari frankfurter.app (fiat) + CoinGecko (crypto) via cron `0 */6 * * *` (Vercel)
 
 ---
 
@@ -154,7 +156,7 @@ Total: 15 stories (10 P0, 5 P1).
 - [ ] tRPC `dashboard.byOwner` → array `{ ownerLabelId, name, value, count, percent }`
 - [ ] tRPC `dashboard.growth({ range })` → array `{ date, value }` (monthly aggregation)
 - [ ] tRPC `dashboard.recentActivity` → last 10 activity entries
-- [ ] Cache 1 menit di Upstash per workspace
+- [ ] Cache 1 menit per workspace (in-memory `cacheOrFetch`; Upstash → Phase 7)
 
 **Day 9: Frontend**
 

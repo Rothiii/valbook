@@ -1,50 +1,74 @@
 import { Ratelimit } from '@upstash/ratelimit';
 
-import { redis } from './redis';
+import { isUpstashConfigured, redis } from './redis';
 
-// Rate limit configs per api-design.md section 8.
-// Identifier shape varies per call site (IP, user.id, workspace.id).
-export const rateLimits = {
-  signUp: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(5, '1 h'),
-    prefix: 'rl:signup',
-  }),
-  signIn: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(10, '15 m'),
-    prefix: 'rl:signin',
-  }),
-  shareCreate: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(10, '1 h'),
-    prefix: 'rl:share-create',
-  }),
-  inviteMember: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(50, '1 h'),
-    prefix: 'rl:invite',
-  }),
-  attachmentUpload: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(100, '1 h'),
-    prefix: 'rl:attachment',
-  }),
-  valuationBulkImport: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(5, '1 h'),
-    prefix: 'rl:val-import',
-  }),
-  publicShareView: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(100, '1 m'),
-    prefix: 'rl:public',
-  }),
-  default: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(1000, '15 m'),
-    prefix: 'rl:default',
-  }),
-};
+type Window = { limit: number; intervalMs: number };
 
-export type RateLimitName = keyof typeof rateLimits;
+const configs = {
+  signUp: { limit: 5, intervalMs: 60 * 60 * 1000 },
+  signIn: { limit: 10, intervalMs: 15 * 60 * 1000 },
+  shareCreate: { limit: 10, intervalMs: 60 * 60 * 1000 },
+  inviteMember: { limit: 50, intervalMs: 60 * 60 * 1000 },
+  attachmentUpload: { limit: 100, intervalMs: 60 * 60 * 1000 },
+  valuationBulkImport: { limit: 5, intervalMs: 60 * 60 * 1000 },
+  publicShareView: { limit: 100, intervalMs: 60 * 1000 },
+  default: { limit: 1000, intervalMs: 15 * 60 * 1000 },
+} as const satisfies Record<string, Window>;
+
+export type RateLimitName = keyof typeof configs;
+
+type LimitResult = { success: boolean; limit: number; remaining: number; reset: number };
+
+const memoryHits = new Map<string, number[]>();
+
+function memoryLimit(name: RateLimitName, identifier: string): LimitResult {
+  const cfg = configs[name];
+  const cutoff = Date.now() - cfg.intervalMs;
+  const key = `${name}:${identifier}`;
+  const hits = (memoryHits.get(key) ?? []).filter((t) => t > cutoff);
+  hits.push(Date.now());
+  memoryHits.set(key, hits);
+  const remaining = Math.max(0, cfg.limit - hits.length);
+  return {
+    success: hits.length <= cfg.limit,
+    limit: cfg.limit,
+    remaining,
+    reset: cutoff + cfg.intervalMs,
+  };
+}
+
+const upstashLimits: Partial<Record<RateLimitName, Ratelimit>> = {};
+
+function getUpstashLimit(name: RateLimitName): Ratelimit {
+  const cached = upstashLimits[name];
+  if (cached) return cached;
+  if (!redis) {
+    throw new Error('Upstash Redis not configured');
+  }
+  const cfg = configs[name];
+  const seconds = Math.floor(cfg.intervalMs / 1000);
+  const limit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(cfg.limit, `${seconds} s`),
+    prefix: `rl:${name}`,
+  });
+  upstashLimits[name] = limit;
+  return limit;
+}
+
+export async function checkRateLimit(
+  name: RateLimitName,
+  identifier: string,
+): Promise<LimitResult> {
+  if (!isUpstashConfigured) {
+    return memoryLimit(name, identifier);
+  }
+  const limiter = getUpstashLimit(name);
+  const result = await limiter.limit(identifier);
+  return {
+    success: result.success,
+    limit: result.limit,
+    remaining: result.remaining,
+    reset: result.reset,
+  };
+}

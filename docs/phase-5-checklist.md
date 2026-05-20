@@ -2,11 +2,13 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.2
+Version: 0.3
 Source: [mvp-stories.md](mvp-stories.md), [api-design.md](api-design.md), [permission-matrix.md](permission-matrix.md)
 Window: **Week 17–18** (10 working days)
 
 ## Status: 🟡 Slicing complete (in-memory)
+
+**Third-party**: Vercel edge cache + Upstash rate-limit dipindah ke [phase-7-checklist.md](phase-7-checklist.md). Phase 5 pakai HTTP cache header (`s-maxage`) + in-memory rate-limit.
 
 - ✅ Group 5.1 Share store: createShare, updateExpiry, revokeShare
 - ✅ Group 5.2 SharingManager UI di `/app/w/[slug]/sharing` — create dialog (workspace or asset scope, expiry preset), active list, revoked history, copy link
@@ -167,22 +169,24 @@ Total: 7 stories (7 P0).
 
 ### Group 5.5 — Edge Caching + Invalidation (Day 9)
 
-- [ ] Vercel edge cache untuk `/api/public/:token` (s-maxage=60)
-- [ ] Cache invalidation pada revoke: pakai Vercel `revalidateTag(`share-${token}`)`
+- [ ] HTTP cache header `Cache-Control: public, s-maxage=60, stale-while-revalidate=300` di response `/api/public/:token` (local: browser cache; Phase 7: Vercel edge cache)
+- [ ] Cache invalidation pada revoke: in-memory `cacheInvalidateByPattern('share:*')` (Phase 7: `revalidateTag(`share-${token}`)`)
 - [ ] Cache invalidation pada workspace data change: tag asset + workspace updates dengan share token cache key
 - [ ] Performance test: 100 req/sec sustain
 
 **Acceptance**:
-- [ ] 2nd request <50ms (cache hit)
-- [ ] After revoke, cache invalidate dalam <5s globally
+- [ ] 2nd request <50ms (local: HTTP 304; Phase 7: edge cache hit)
+- [ ] After revoke, cache invalidate dalam <5s (local: instant single-process; Phase 7: globally)
 - [ ] After asset update, public view reflect dalam <60s
+
+**→ Phase 7**: Vercel `revalidateTag` + edge cache global propagation
 
 ---
 
 ### Group 5.6 — Security Audit (Day 10)
 
 - [ ] Token entropy verify (256 bits)
-- [ ] Rate limit enforce dari IP behind Vercel proxy (use `request.ip` correctly)
+- [ ] Rate limit enforce dari IP via `checkRateLimit('publicShareView', ip)` (local: in-memory; Phase 7: Upstash + `request.ip` behind Vercel proxy)
 - [ ] No internal IDs leaked di response (grep + manual review)
 - [ ] No SQL injection di token query (parameterized)
 - [ ] CORS: allow `*` untuk public endpoint (read-only)
@@ -224,7 +228,7 @@ Total: 7 stories (7 P0).
 | Token guessing | 32-byte entropy, rate limit |
 | Cache stale after revoke | Tag-based invalidation, fallback s-maxage 60 |
 | Workspace owner accidentally share sensitive | Confirm modal + audit log + clear "anyone with link" warning |
-| Public endpoint DDoS | Cloudflare proxy + edge cache + rate limit |
+| Public endpoint DDoS | Local: in-memory rate-limit; → Phase 7 (Cloudflare proxy + Vercel edge cache + Upstash) |
 | SEO leak via crawled link | `X-Robots-Tag: noindex` + robots.txt deny `/public/*` |
 | Internal ID leak via JSON | Short slug + explicit strip in serializer |
 

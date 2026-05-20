@@ -2,9 +2,9 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.1
+Version: 0.2
 Source: [prd.md](../prd.md) + 7 supporting docs
-Total window: **20 minggu (~5 bulan)** to customer-ready MVP
+Total window: **20 minggu MVP local** + **2 minggu Phase 7 production wiring** = ~5.5 bulan total
 
 ---
 
@@ -12,13 +12,16 @@ Total window: **20 minggu (~5 bulan)** to customer-ready MVP
 
 | Phase | Window | Focus | Doc |
 |---|---|---|---|
-| **0** | Week 1–2 | Foundation & infra setup | [phase-0-checklist.md](phase-0-checklist.md) |
+| **0** | Week 1–2 | Foundation (local-first) | [phase-0-checklist.md](phase-0-checklist.md) |
 | **1** | Week 3–7 | MVP Core (auth, workspace, asset CRUD, static category) | [phase-1-checklist.md](phase-1-checklist.md) |
 | **2** | Week 8–12 | Dynamic fields + collaboration + hierarchy | [phase-2-checklist.md](phase-2-checklist.md) |
-| **3** | Week 13–14 | Valuation history + dashboard + multi-currency | [phase-3-checklist.md](phase-3-checklist.md) |
-| **4** | Week 15–16 | Attachment + tags + activity log UI + search | [phase-4-checklist.md](phase-4-checklist.md) |
+| **3** | Week 13–14 | Valuation history + dashboard + multi-currency (seed rates) | [phase-3-checklist.md](phase-3-checklist.md) |
+| **4** | Week 15–16 | Attachment (local FS) + tags + activity log UI + search | [phase-4-checklist.md](phase-4-checklist.md) |
 | **5** | Week 17–18 | Public sharing (workspace + asset scope) | [phase-5-checklist.md](phase-5-checklist.md) |
-| **6** | Week 19–20 | Polish, security, launch readiness | [phase-6-checklist.md](phase-6-checklist.md) |
+| **6** | Week 19–20 | App-level polish, security audit, runbook | [phase-6-checklist.md](phase-6-checklist.md) |
+| **7** | Week 21–22 | **Production wiring (Super Last Phase)** — Neon, R2, Resend, Upstash, Sentry, Vercel | [phase-7-checklist.md](phase-7-checklist.md) |
+
+**Local-first strategy**: Phase 0-6 jalan murni lokal (DBngin Postgres, `public/uploads/` storage, in-memory cache, console-log email). Phase 7 swap implementation di balik existing API surface ke third-party SaaS. App code tidak berubah saat swap.
 
 ---
 
@@ -48,7 +51,10 @@ Phase 4 (Attachment + Search)───┤
 Phase 5 (Public Sharing)────────┤
    │                            │
    ▼                            │
-Phase 6 (Polish + Launch)◄──────┘
+Phase 6 (Polish + Audit)◄───────┘
+   │
+   ▼
+Phase 7 (Production Wiring)
 ```
 
 ---
@@ -93,16 +99,17 @@ Yang paling load-bearing:
 | 4 | 10 | Last day partial |
 | 5 | 10 | Day 9–10 |
 | 6 | 10 | Day 10 morning |
-| **Total** | **100 days = 20 weeks** | |
+| 7 | 10 | Day 10 launch buffer |
+| **Total** | **110 days = 22 weeks** | |
 
 ---
 
 ## Gate Criteria Per Phase
 
 ### Phase 0 → 1
-- [ ] User can register, verify, login, create workspace from template
+- [ ] User can register, login, create workspace from template (local DB)
 - [ ] CI/CD pipeline green
-- [ ] All infra connected (DB, R2, Resend, Sentry, Upstash)
+- [ ] Local fallback API surface ready (`saveFile`, `sendEmail`, `cacheGet`, `checkRateLimit`)
 
 ### Phase 1 → 2
 - [ ] Solo user can full CRUD asset with static categories
@@ -130,15 +137,21 @@ Yang paling load-bearing:
 - [ ] Token validation robust
 - [ ] No data leak via public endpoint
 
-### Phase 6 → Launch
+### Phase 6 → 7
 - [ ] Security audit pass (OWASP top 10)
-- [ ] Performance budget met
-- [ ] Backup tested + restorable
-- [ ] Monitoring + alerting active
+- [ ] Performance budget met (local Lighthouse)
+- [ ] Local pg_dump/restore tested
 - [ ] Privacy policy + ToS published
 - [ ] Account settings + delete works
-- [ ] Production stable >48h
-- [ ] Beta user complete journey
+- [ ] Full local user journey end-to-end
+
+### Phase 7 → Launch
+- [ ] All third-party services wired (Neon, R2, Resend, Upstash, Sentry, Vercel)
+- [ ] Custom domain + HTTPS + SEO indexed
+- [ ] Email deliverability OK (inbox, not spam)
+- [ ] Monitoring + alerting active (Sentry + uptime monitor)
+- [ ] Production deploy stable >48h
+- [ ] Beta user complete journey on production
 
 ---
 
@@ -148,14 +161,16 @@ Yang paling load-bearing:
 |---|---|---|
 | 0 | Better-auth Drizzle adapter quirks | Phase 1 delay |
 | 1 | Activity log writer drift | Audit gap risk |
-| 2 | Email deliverability | Member invitation fail |
 | 2 | Hierarchy circular ref | Data integrity |
 | 3 | CSV import perf large file | UX block |
-| 3 | Currency rate API quota | Dashboard inaccurate |
-| 4 | R2 CORS misconfig | Upload broken |
 | 4 | Search trigram perf 10k+ rows | List slow |
 | 5 | Token entropy / cache stale | Security breach |
-| 6 | First customer onboarding friction | Launch impression |
+| 6 | App-level polish drift dari requirement | Phase 7 rework |
+| 7 | Vendor onboarding lambat (Resend DKIM, domain DNS) | Launch delay |
+| 7 | R2 CORS misconfig | Upload broken |
+| 7 | Email deliverability | Member invitation fail |
+| 7 | Currency rate API quota | Dashboard inaccurate |
+| 7 | First customer onboarding friction | Launch impression |
 
 ---
 

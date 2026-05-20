@@ -2,7 +2,7 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.2
+Version: 0.3
 Source: cross-doc — final hardening pre-customer
 Window: **Week 19–20** (10 working days)
 
@@ -10,9 +10,9 @@ Window: **Week 19–20** (10 working days)
 
 ## Overview
 
-Phase 6 = production readiness. Output: deployed, monitored, documented, secured, ready untuk first paying customer.
+Phase 6 = **app-level polish + readiness**. Output: feature lengkap, UX rapi, security audit lulus, i18n jalan, runbook tertulis. **App siap untuk produksi tapi belum di-deploy** — semua third-party SaaS wiring (Vercel, Neon, R2, Resend, Upstash, Sentry, domain) dipindah ke [phase-7-checklist.md](phase-7-checklist.md).
 
-**Acceptance gate**: app dapat onboard real customer tanpa intervention manual, dengan monitoring + recovery plan documented.
+**Acceptance gate**: app jalan lengkap di lokal dengan semua fitur MVP, security checklist green, dokumentasi runbook + privacy + terms siap; tinggal swap implementation ke third-party di Phase 7 tanpa ubah call site.
 
 ---
 
@@ -76,8 +76,8 @@ Phase 6 = production readiness. Output: deployed, monitored, documented, secured
 - [ ] Add missing index kalau ada N+1 atau seq scan
 - [ ] Server-side cache hot path (dashboard 1 min)
 - [ ] React Query stale time tune
-- [ ] Vercel Speed Insights review
-- [ ] CDN check (static assets cached)
+- [ ] Local Lighthouse audit (Speed Insights → Phase 7)
+- [ ] Static asset cache header set di Next.js config (CDN check → Phase 7)
 
 **Acceptance**:
 - [ ] LCP <2.5s
@@ -98,8 +98,8 @@ Phase 6 = production readiness. Output: deployed, monitored, documented, secured
 - [ ] SQL injection scan (Drizzle parameterized — manual audit any raw SQL)
 - [ ] XSS audit: notes field, custom field text → escape via React default + DOMPurify kalau richtext
 - [ ] File upload: mime + extension match validation
-- [ ] R2 bucket policy: no public access
-- [ ] Resend API key env-only (no commit)
+- [ ] Local: file path scoping di `storage.ts` (refuse delete outside `public/uploads/`); R2 bucket policy → Phase 7
+- [ ] All API keys env-only (no commit); Resend wiring → Phase 7
 - [ ] Environment variable audit
 - [ ] Secret rotation plan documented
 - [ ] Dependency scan (`pnpm audit`, fix critical/high)
@@ -112,7 +112,7 @@ Phase 6 = production readiness. Output: deployed, monitored, documented, secured
   - A06 Vulnerable components — pnpm audit pass
   - A07 Auth failures — better-auth managed, rate limit, email verify
   - A08 Data integrity — DB constraints, audit log
-  - A09 Logging failures — Sentry + activity log
+  - A09 Logging failures — activity log + structured logger (Sentry → Phase 7)
   - A10 SSRF — no user-controlled URL fetch in MVP
 
 **Acceptance**:
@@ -141,48 +141,43 @@ Phase 6 = production readiness. Output: deployed, monitored, documented, secured
 
 ---
 
-### Group 6.6 — Backup + Recovery (Day 7)
+### Group 6.6 — Backup + Recovery — Runbook Only (Day 7)
 
-- [ ] Neon point-in-time recovery enabled (7 days)
-- [ ] Test restore ke staging dari snapshot
-- [ ] R2 versioning enable (optional MVP, recommended)
-- [ ] Cron untuk export DB dump weekly ke R2 (DR backup)
+**Phase 6 (local)**: tulis runbook saja. Live backup/restore configuration → Phase 7.
+
 - [ ] Runbook doc: `docs/runbook.md`
   - Incident response template
-  - DB rollback steps
+  - DB rollback steps (pg_dump/pg_restore local)
   - Rotation key procedure
   - Common error remediation
   - On-call escalation
-- [ ] Test runbook 1 scenario (simulate DB connection loss)
+- [ ] Test pg_dump + pg_restore di local Postgres
+- [ ] Document restore procedure step-by-step
+- [ ] **→ Phase 7**: Neon point-in-time recovery (7d), R2 versioning, weekly DR backup cron, restore test ke staging
 
 **Acceptance**:
-- [ ] Restore tested successful
 - [ ] Runbook documented + reviewed
-- [ ] Weekly DR backup cron green
+- [ ] Local pg_dump/restore tested
 
 ---
 
-### Group 6.7 — Monitoring + Alerting (Day 8)
+### Group 6.7 — Monitoring Hooks (Day 8)
 
-- [ ] Sentry dashboard: error rate panel
-- [ ] Sentry alert rules: spike error rate >5/min, new error type, performance regression >50%
-- [ ] Uptime monitor (BetterStack free atau Vercel)
-- [ ] Slack webhook untuk alert (atau email)
-- [ ] Vercel Analytics dashboard pinned
-- [ ] Custom event tracking minimal: signup, workspace_create, asset_create, valuation_add, share_create (PostHog defer V2 — pakai Vercel Analytics events kalau memungkinkan)
-- [ ] Health check endpoint `/api/health` (DB ping, R2 ping, Redis ping)
-- [ ] Uptime monitor hit health endpoint tiap 1 menit
+**Phase 6 (local)**: pasang hook + endpoint. Live dashboard/alert/uptime monitor → Phase 7.
+
+- [ ] Custom event hook minimal: signup, workspace_create, asset_create, valuation_add, share_create — log via pino structured logger (Phase 7 wire ke Vercel Analytics / PostHog)
+- [ ] Health check endpoint `/api/health` — DB ping (local Postgres); kondisional cek storage/cache/Sentry kalau env set
+- [ ] **→ Phase 7**: Sentry dashboard + alert rules, BetterStack/Vercel uptime monitor, Slack webhook, R2/Redis ping di /api/health
 
 **Acceptance**:
-- [ ] Alert fire kalau Sentry error spike (test trigger)
-- [ ] Health endpoint return 200 normal, 503 kalau dependency down
-- [ ] Slack/email notif sampai untuk test alert
+- [ ] Health endpoint return 200 normal (DB up), 503 kalau DB down
+- [ ] Event log muncul di console saat trigger
 
 ---
 
 ### Group 6.8 — Legal + Compliance (Day 9 setengah)
 
-- [ ] Privacy Policy page `/privacy` — generic template, mention: data collected, retention, third parties (Vercel, Neon, Sentry, Resend, Cloudflare), user rights
+- [ ] Privacy Policy page `/privacy` — generic template, mention: data collected, retention, user rights. Third-party list (Vercel, Neon, Sentry, Resend, Cloudflare) update saat Phase 7
 - [ ] Terms of Service `/terms` — usage rules, liability, payment future
 - [ ] Cookie banner kalau pakai cookie selain auth (analytics opsional)
 - [ ] GDPR-ish: account delete flow (defer V2 implementation, doc commitment)
@@ -222,19 +217,11 @@ Bukan notif center penuh — hanya beberapa transactional email + in-app banner 
 
 ---
 
-### Group 6.11 — Domain + SEO Setup (Day 10 pagi-siang)
+### Group 6.11 — SEO Code Baseline (Day 10 pagi-siang)
 
-**Domain wajib**: `.vercel.app` di-noindex Vercel by default → tanpa custom domain Google tidak crawl.
+**Phase 6 (local)**: tulis kode SEO + metadata yang siap pakai. Domain + Resend DKIM + Search Console verification → [phase-7-checklist.md](phase-7-checklist.md).
 
-- [ ] Beli domain (Cloudflare Registrar / Namecheap / Porkbun) — TLD priority `.com` > `.id` > `.app`
-- [ ] Vercel project Settings → Domains → Add → set A/CNAME di registrar
-- [ ] Verify HTTPS auto-provisioned (Let's Encrypt)
-- [ ] Update env: `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`
-- [ ] Resend domain verify (DKIM + SPF + DMARC) di subdomain `mail.{domain}` atau `send.{domain}`
-- [ ] Update `RESEND_FROM_EMAIL` env
-- [ ] Test send email dari production domain → cek inbox + bukan spam
-
-**SEO baseline**:
+**SEO baseline (code-only)**:
 
 - [ ] `app/sitemap.ts` — generate sitemap dari static page + indexable route
 - [ ] `app/robots.ts`:
@@ -243,62 +230,52 @@ Bukan notif center penuh — hanya beberapa transactional email + in-app banner 
 - [ ] `metadata` API per public route: title (50-60 char), description (150-160 char), OG image, Twitter card
 - [ ] `opengraph-image.tsx` dynamic untuk landing + public share preview
 - [ ] Structured data JSON-LD untuk landing (Organization, FAQPage kalau ada)
-- [ ] Canonical URL set
+- [ ] Canonical URL set (pakai placeholder host dari `NEXT_PUBLIC_APP_URL`)
 - [ ] hreflang tag untuk `/id/*` + `/en/*` (kalau locale routing pakai prefix)
 - [ ] Public share endpoint `/public/:token` set `X-Robots-Tag: noindex, nofollow`
 
-**Search Console**:
-
-- [ ] Google Search Console verify (TXT record atau HTML file)
-- [ ] Submit sitemap.xml
-- [ ] Bing Webmaster Tools verify + submit sitemap
-- [ ] Set preferred domain (www vs apex) di Search Console
+**→ Phase 7**: Domain purchase, DNS, HTTPS provisioning, Resend DKIM/SPF/DMARC, Search Console verify, sitemap submit
 
 **Acceptance**:
-- [ ] Custom domain serve HTTPS + redirect www→apex (or vice versa)
-- [ ] Email dari `mail.{domain}` masuk inbox bukan spam (Gmail + Outlook test)
-- [ ] `https://{domain}/sitemap.xml` accessible
-- [ ] `https://{domain}/robots.txt` benar
-- [ ] OG preview render benar di WA + Twitter (debug pakai opengraph.xyz)
-- [ ] Search Console "URL inspection" landing page = indexable
-- [ ] Lighthouse SEO score >95
+- [ ] Local: `http://localhost:3000/sitemap.xml` accessible
+- [ ] Local: `http://localhost:3000/robots.txt` benar
+- [ ] OG preview render benar (test via metadata route dengan tools opengraph.xyz pakai localhost tunnel kalau perlu)
+- [ ] Lighthouse SEO score >95 di local build
 
 ---
 
-### Group 6.12 — Beta Launch Prep (Day 10 sore)
+### Group 6.12 — MVP Final Smoke + Handoff (Day 10 sore)
 
-- [ ] Production deploy final
-- [ ] Beta invite list email blast (manual atau form)
-- [ ] Onboarding email setelah signup (welcome + getting started link)
-- [ ] Help docs / FAQ minimal di `/help` (atau Notion external link)
-- [ ] Status page (BetterStack free atau Vercel)
-- [ ] Final smoke test seluruh flow
-- [ ] Sign off retro
+**Phase 6 (local)**: smoke test full flow di lokal + dokumentasi handoff. Production deploy + beta invite → [phase-7-checklist.md](phase-7-checklist.md).
+
+- [ ] Help docs / FAQ minimal di `/help`
+- [ ] Onboarding email template ready (verify, welcome, invitation) — sudah ada di `src/emails/`
+- [ ] Final smoke test seluruh flow di local (register → workspace → invite → asset → valuation → share → public view)
+- [ ] Sign off retro Phase 0-6 → handoff ke Phase 7
 
 **Acceptance**:
-- [ ] First real beta user signup success without intervention
-- [ ] Email reach inbox (not spam)
-- [ ] All monitoring green
-- [ ] Status page public accessible
+- [ ] Full user journey local-only sukses end-to-end
+- [ ] Build pass + lint clean
+- [ ] Documentation complete (user FAQ + runbook)
 
 ---
 
-## DoD Phase 6 / MVP Launch
+## DoD Phase 6 / MVP Feature-Complete
 
 - [ ] Empty/loading/error states everywhere
 - [ ] Accessibility AA pass
-- [ ] Performance budget met
+- [ ] Performance budget met (local Lighthouse)
 - [ ] Security audit pass (OWASP top 10)
 - [ ] i18n ID + EN working
-- [ ] Backup tested + restorable
-- [ ] Monitoring + alerting active
+- [ ] Local backup procedure tested (pg_dump/restore)
+- [ ] Monitoring hooks wired (event log + health endpoint)
 - [ ] Privacy policy + ToS published
 - [ ] Account settings working (including delete)
-- [ ] Production deploy stable >48 jam
-- [ ] Beta user can complete full journey (register → workspace → invite → asset → valuation → share)
+- [ ] Full user journey local end-to-end (register → workspace → invite → asset → valuation → share → public view)
 - [ ] CI green
 - [ ] Documentation complete (user-facing FAQ + internal runbook)
 - [ ] Incident response plan documented
+- [ ] **Production deploy + beta launch → [phase-7-checklist.md](phase-7-checklist.md)**
 
 ---
 

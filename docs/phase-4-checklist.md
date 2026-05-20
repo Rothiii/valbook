@@ -2,11 +2,13 @@
 
 # Collaborative Asset Workspace Platform
 
-Version: 0.2
+Version: 0.3
 Source: [mvp-stories.md](mvp-stories.md), [api-design.md](api-design.md)
 Window: **Week 15–16** (10 working days)
 
 ## Status: 🟡 Slicing complete (in-memory)
+
+**Third-party**: Cloudflare R2 dipindah ke [phase-7-checklist.md](phase-7-checklist.md). Phase 4 attachment storage pakai local filesystem (`apps/web/public/uploads/<workspaceId>/...`) via `shared/lib/storage.ts`. Direct upload via tRPC mutation (POST file ke server, server `saveFile()`). Phase 7 swap → presigned PUT URL ke R2.
 
 - ✅ Group 4.1 Attachment upload — base64 data URL in store (5MB cap, mime allowlist), AttachmentTab dengan image preview lightbox + download + delete
 - ✅ Group 4.2 Tags CRUD + assign multi tag ke asset + filter
@@ -43,15 +45,16 @@ Total: 18 stories (12 P0, 5 P1, 1 P2).
 
 **Day 1: Backend**
 
-- [ ] tRPC `attachments.requestUploadUrl({ workspaceSlug, assetId, fileName, mimeType, sizeBytes })`
+- [ ] tRPC `attachments.upload({ workspaceSlug, assetId, fileName, mimeType, base64 })` — MVP direct upload (atau POST multipart ke `/api/upload` route handler)
   - Validate: max 25MB, mime allowlist (image/*, application/pdf, doc/docx, xls/xlsx)
-  - Insert `attachments` row dengan status `pending`
-  - Return R2 presigned PUT URL (10 min) + attachmentId
-- [ ] tRPC `attachments.confirmUpload({ attachmentId })` → mark `uploaded_at`, validate file exists di R2 (HEAD request)
-- [ ] tRPC `attachments.getDownloadUrl({ attachmentId })` → presigned GET (5 min)
-- [ ] tRPC `attachments.delete` → delete R2 + delete row
+  - Decode base64 → `saveFile()` ke `public/uploads/<workspaceId>/<uuid>.<ext>`
+  - Insert `attachments` row dengan `storage_key` + `uploaded_at = now()`
+- [ ] tRPC `attachments.getDownloadUrl({ attachmentId })` → return `/${storage_key}` (static file URL, no expiry locally)
+- [ ] tRPC `attachments.delete` → `deleteFile(key)` + delete row
 - [ ] tRPC `attachments.list({ workspaceSlug, assetId? })`
 - [ ] Activity log
+
+**→ Phase 7**: Swap `attachments.upload` → presigned PUT URL flow. Add `confirmUpload` mutation. Storage_key tetap, prefix `r2://` saat di R2.
 
 **Day 2: Frontend upload**
 
@@ -60,7 +63,7 @@ Total: 18 stories (12 P0, 5 P1, 1 P2).
 - [ ] Multi-file upload (sequential or concurrent, parallel max 3)
 - [ ] Per-file progress bar
 - [ ] Validation feedback inline (size too big, mime not allowed)
-- [ ] Upload flow: requestUploadUrl → PUT to R2 → confirmUpload → refresh list
+- [ ] Upload flow (local): file → base64 (or multipart POST) → `attachments.upload` → refresh list (Phase 7: presigned PUT → R2 → confirm)
 
 **Day 3: Frontend list + preview**
 
@@ -75,10 +78,10 @@ Total: 18 stories (12 P0, 5 P1, 1 P2).
 - [ ] Upload 5MB image sukses, <5s
 - [ ] Upload >25MB block dengan error message clear
 - [ ] Upload .exe (mime not allowed) block
-- [ ] Download URL works dan expire 5 min later
-- [ ] Delete remove dari R2 + DB
+- [ ] Download URL works (local: static path `/uploads/...`; Phase 7: presigned 5 min)
+- [ ] Delete remove dari `public/uploads/` + DB
 - [ ] Multi-upload sequential progress visible
-- [ ] Image preview load instant (cached signed URL 5 min)
+- [ ] Image preview load instant (local: static URL; Phase 7: cached signed URL 5 min)
 
 ---
 
@@ -211,11 +214,11 @@ Total: 18 stories (12 P0, 5 P1, 1 P2).
 
 | Risk | Mitigation |
 |---|---|
-| R2 CORS blocking direct upload | Set CORS origin list awal di R2 settings |
+| R2 CORS blocking direct upload | → Phase 7 (set CORS origin list di R2 settings); local: no CORS issue, upload lewat server |
 | Upload retry mengabaikan partial state | Cleanup orphan attachment via weekly cron |
 | Trigram index slow di Postgres 16 | Test dengan 10k row dataset, alternatif: pg_trgm + GIN |
 | Custom field filter UX kompleks | Limit MVP ke 1 field at a time, advanced V2 |
-| Large file upload time-out Vercel | Direct-to-R2 (signed URL bypass server), Vercel 30s function limit |
+| Large file upload time-out Vercel | → Phase 7 (direct-to-R2 signed URL bypass server), Vercel 30s function limit |
 | Activity log table growth | Partition by month V2 kalau >1M rows |
 
 ---

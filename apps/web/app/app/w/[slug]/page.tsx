@@ -9,6 +9,7 @@ import { useAssetStats } from '@/src/features/asset/hooks/use-asset-stats';
 import { useCategories } from '@/src/features/category/hooks/use-categories';
 import { useConvert } from '@/src/features/currency/hooks/use-currency';
 import { useOwnerLabels } from '@/src/features/owner-label/hooks/use-owner-labels';
+import { useWorkspaceGrowth } from '@/src/features/valuation/hooks/use-workspace-growth';
 import { useWorkspaceBySlug } from '@/src/features/workspace/hooks/use-workspaces';
 import { Button } from '@/src/shared/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/shared/ui/card';
@@ -36,6 +37,8 @@ export default function DashboardPage({ params }: { params: Promise<{ slug: stri
     if (v === null) unsupported.push(cur);
     else convertedTotal += v;
   }
+
+  const growth = useWorkspaceGrowth(workspace.id, display, 30);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -98,7 +101,25 @@ export default function DashboardPage({ params }: { params: Promise<{ slug: stri
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl text-muted-foreground">Phase 3</p>
+            {growth.hasBaseline && growth.percent !== null ? (
+              <>
+                <p
+                  className={`text-2xl ${growth.percent >= 0 ? 'text-emerald-600' : 'text-destructive'}`}
+                >
+                  {growth.percent >= 0 ? '+' : ''}
+                  {growth.percent.toFixed(2)}%
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {growth.delta >= 0 ? '+' : ''}
+                  {display} {growth.delta.toLocaleString()}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-2xl text-muted-foreground">—</p>
+                <p className="text-xs text-muted-foreground">Add valuations ≥30d ago</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

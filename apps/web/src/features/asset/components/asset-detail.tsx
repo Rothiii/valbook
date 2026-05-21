@@ -214,6 +214,7 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
           <ValuationTab
             asset={asset}
             defaultCurrency={workspace?.displayCurrency ?? asset.currentCurrency ?? 'IDR'}
+            displayCurrency={workspace?.displayCurrency}
           />
         </TabsContent>
         <TabsContent value="attachments" className="mt-4">

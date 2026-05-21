@@ -29,13 +29,15 @@ import { ValuationForm } from './valuation-form';
 export type ValuationTabProps = {
   asset: Asset;
   defaultCurrency: string;
+  displayCurrency?: string;
 };
 
-export function ValuationTab({ asset, defaultCurrency }: ValuationTabProps) {
+export function ValuationTab({ asset, defaultCurrency, displayCurrency }: ValuationTabProps) {
   const entries = useAssetValuations(asset.id);
   const { deleteValuation } = useValuationActions();
   const { user } = useSession();
   const [open, setOpen] = useState(false);
+  const [convertChart, setConvertChart] = useState(false);
 
   function handleDelete(id: string) {
     if (!user) return;
@@ -75,7 +77,20 @@ export function ValuationTab({ asset, defaultCurrency }: ValuationTabProps) {
         />
       ) : (
         <>
-          <ValuationChart entries={entries} />
+          {displayCurrency && displayCurrency !== asset.currentCurrency ? (
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={convertChart}
+                onChange={(e) => setConvertChart(e.target.checked)}
+              />
+              Convert chart to {displayCurrency}
+            </label>
+          ) : null}
+          <ValuationChart
+            entries={entries}
+            displayCurrency={convertChart ? displayCurrency : undefined}
+          />
           <Table>
             <TableHeader>
               <TableRow>

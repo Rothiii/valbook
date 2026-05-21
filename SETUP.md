@@ -63,15 +63,33 @@ cp apps/web/.env.example apps/web/.env.local
 `DATABASE_URL` sudah default ke local Postgres. Generate + push schema:
 
 ```bash
-pnpm db:generate   # generate migration files (drizzle-kit)
-pnpm db:push       # apply schema to local DB (dev iteration)
-pnpm db:migrate    # apply migration files (production-ish)
-pnpm db:studio     # open Drizzle Studio (browse tables)
-pnpm db:check      # check for migration drift
-pnpm db:seed       # populate seed data
+pnpm db:generate     # generate migration files (drizzle-kit)
+pnpm db:push         # apply schema to local DB (dev iteration)
+pnpm db:migrate      # apply migration files (production-ish)
+pnpm db:studio       # open Drizzle Studio (browse tables)
+pnpm db:check        # check for migration drift
+pnpm db:seed:demo    # create demo user + workspace (idempotent)
 ```
 
 Semua perintah ini akan no-op kalau `DATABASE_URL` belum diisi atau tabel belum di-define.
+
+### Demo akun
+
+Setelah `pnpm db:migrate`, jalankan:
+
+```bash
+pnpm db:seed:demo
+```
+
+Login di `/login`:
+
+| Field | Value |
+|---|---|
+| Email | `demo@valbook.local` |
+| Password | `demo1234` |
+| Workspace | `/app/w/personal-demo` (template: Personal Wealth, 5 kategori) |
+
+Seed idempotent — run berkali-kali aman, skip kalau user atau workspace sudah ada.
 
 **Optional**: install git hooks supaya commit auto-lint:
 

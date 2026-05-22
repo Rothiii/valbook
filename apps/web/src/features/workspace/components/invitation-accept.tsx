@@ -3,9 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
-
 import { useSession } from '@/src/features/auth/hooks/use-session';
+import { notify } from '@/src/shared/lib/notify';
 import { Button } from '@/src/shared/ui/button';
 
 import { useMembershipActions } from '../hooks/use-workspace-actions';
@@ -94,10 +93,10 @@ export function InvitationAccept({ token }: { token: string }) {
         userName: user.name,
         userEmail: user.email,
       });
-      toast.success('Joined workspace');
+      notify.success('Joined workspace');
       router.push(`/app/w/${workspaceSlug}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed');
+      notify.error(error instanceof Error ? error.message : 'Failed');
     } finally {
       setPending(false);
     }

@@ -10,6 +10,8 @@ import { Separator } from '@/src/shared/ui/separator';
 import { Skeleton } from '@/src/shared/ui/skeleton';
 import { Textarea } from '@/src/shared/ui/textarea';
 
+import { ToastDemo } from './toast-demo';
+
 export const metadata: Metadata = {
   title: 'Documentation · Valbook',
   description: 'Design system, color palette, typography, and component reference.',
@@ -265,6 +267,10 @@ export default function DocumentationPage() {
           <SubSection title="Separator">
             <Separator />
             <p className="mt-2 text-xs text-muted-foreground">Horizontal divider above.</p>
+          </SubSection>
+
+          <SubSection title="Toast (notify)">
+            <ToastDemo />
           </SubSection>
         </Section>
 

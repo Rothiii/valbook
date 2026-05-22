@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
-
 import { useSession } from '@/src/features/auth/hooks/use-session';
+import { notify } from '@/src/shared/lib/notify';
 import { Button } from '@/src/shared/ui/button';
 import {
   Dialog,
@@ -72,7 +71,7 @@ function CreateOwnerDialog({
       actorId: user.id,
       actorName: user.name,
     });
-    toast.success('Owner label created');
+    notify.success('Owner label created');
     setName('');
     setColor('');
     onOpenChange(false);
@@ -148,7 +147,7 @@ function OwnerRow({ owner }: { owner: OwnerLabel }) {
           if (!user) return;
           if (confirm(`Delete owner "${owner.name}"?`)) {
             deleteOwnerLabel({ id: owner.id, actorId: user.id, actorName: user.name });
-            toast.success('Deleted');
+            notify.success('Deleted');
           }
         }}
       >

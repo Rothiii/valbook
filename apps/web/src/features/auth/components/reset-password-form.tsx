@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { notify } from '@/src/shared/lib/notify';
 
 import { Button } from '@/src/shared/ui/button';
 import {
@@ -38,10 +38,10 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     setPending(true);
     try {
       await resetPassword(values.token, values.password);
-      toast.success('Password updated. Please log in.');
+      notify.success('Password updated. Please log in.');
       router.push('/login');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Reset failed');
+      notify.error(error instanceof Error ? error.message : 'Reset failed');
     } finally {
       setPending(false);
     }

@@ -2,8 +2,6 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-
 import { ActivityFeed } from '@/src/features/activity/components/activity-feed';
 import { AttachmentTab } from '@/src/features/attachment/components/attachment-tab';
 import { useAssetAttachments } from '@/src/features/attachment/hooks/use-attachments';
@@ -14,6 +12,7 @@ import { useOwnerLabel } from '@/src/features/owner-label/hooks/use-owner-labels
 import { useAssetTagIds, useTags } from '@/src/features/tag/hooks/use-tags';
 import { ValuationTab } from '@/src/features/valuation/components/valuation-tab';
 import { useWorkspaceBySlug } from '@/src/features/workspace/hooks/use-workspaces';
+import { notify } from '@/src/shared/lib/notify';
 import { Badge } from '@/src/shared/ui/badge';
 import { Button } from '@/src/shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/shared/ui/card';
@@ -48,13 +47,13 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
     try {
       if (asset.status === 'archived') {
         unarchiveAsset({ id: asset.id, actorId: user.id, actorName: user.name });
-        toast.success('Asset unarchived');
+        notify.success('Asset unarchived');
       } else {
         archiveAsset({ id: asset.id, actorId: user.id, actorName: user.name });
-        toast.success('Asset archived');
+        notify.success('Asset archived');
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed');
+      notify.error(error instanceof Error ? error.message : 'Failed');
     }
   }
 
@@ -62,7 +61,7 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
     if (!user) return;
     if (!confirm(`Permanently delete "${asset.name}"?`)) return;
     deleteAsset({ id: asset.id, actorId: user.id, actorName: user.name });
-    toast.success('Asset deleted');
+    notify.success('Asset deleted');
     router.push(`/app/w/${workspaceSlug}/assets`);
   }
 

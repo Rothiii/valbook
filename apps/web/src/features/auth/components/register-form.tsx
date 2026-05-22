@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { notify } from '@/src/shared/lib/notify';
 
 import { Button } from '@/src/shared/ui/button';
 import {
@@ -35,10 +35,10 @@ export function RegisterForm() {
     setPending(true);
     try {
       await registerUser(values);
-      toast.success('Account created. Welcome!');
+      notify.success('Account created. Welcome!');
       router.push('/app');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Registration failed');
+      notify.error(error instanceof Error ? error.message : 'Registration failed');
     } finally {
       setPending(false);
     }

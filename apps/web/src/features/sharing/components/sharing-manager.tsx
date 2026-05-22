@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
-
 import { useAssets } from '@/src/features/asset/hooks/use-assets';
 import { useSession } from '@/src/features/auth/hooks/use-session';
+import { notify } from '@/src/shared/lib/notify';
 import { Badge } from '@/src/shared/ui/badge';
 import { Button } from '@/src/shared/ui/button';
 import {
@@ -65,7 +64,7 @@ export function SharingManager({ workspaceId, workspaceName }: SharingManagerPro
   function handleCreate() {
     if (!user) return;
     if (scope === 'asset' && !assetId) {
-      toast.error('Pick an asset');
+      notify.error('Pick an asset');
       return;
     }
     const target = scope === 'asset' ? assets.find((a) => a.id === assetId) : null;
@@ -78,7 +77,7 @@ export function SharingManager({ workspaceId, workspaceName }: SharingManagerPro
       actorName: user.name,
       targetLabel: scope === 'workspace' ? workspaceName : target?.name,
     });
-    toast.success('Share link created');
+    notify.success('Share link created');
     setOpen(false);
     setAssetId('');
     setExpiry('never');
@@ -89,7 +88,7 @@ export function SharingManager({ workspaceId, workspaceName }: SharingManagerPro
     if (!user) return;
     if (!confirm('Revoke this share link?')) return;
     revokeShare({ id, actorId: user.id, actorName: user.name });
-    toast.success('Share revoked');
+    notify.success('Share revoked');
   }
 
   return (
@@ -217,7 +216,7 @@ function ShareRow({ share, onRevoke }: { share: PublicShare; onRevoke: () => voi
   const expired = share.expiresAt && new Date(share.expiresAt).getTime() < Date.now();
 
   function copy() {
-    navigator.clipboard.writeText(url).then(() => toast.success('Link copied'));
+    navigator.clipboard.writeText(url).then(() => notify.success('Link copied'));
   }
 
   return (

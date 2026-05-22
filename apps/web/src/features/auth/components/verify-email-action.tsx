@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/src/shared/lib/notify';
 
 import { Button } from '@/src/shared/ui/button';
 
@@ -51,7 +51,7 @@ export function VerifyEmailAction({ token }: VerifyEmailActionProps) {
       <Button
         className="w-full"
         onClick={() => {
-          toast.success('Email verified');
+          notify.success('Email verified');
           router.push('/login');
         }}
       >

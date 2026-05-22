@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/src/shared/lib/notify';
 
 import { Badge } from '@/src/shared/ui/badge';
 import { Button } from '@/src/shared/ui/button';
@@ -24,9 +24,9 @@ export function EmailVerificationCard() {
     setPending(true);
     try {
       await sendVerifyEmail(user.email);
-      toast.success('Verification email sent. Check your inbox.');
+      notify.success('Verification email sent. Check your inbox.');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send email');
+      notify.error(error instanceof Error ? error.message : 'Failed to send email');
     } finally {
       setPending(false);
     }

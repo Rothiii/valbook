@@ -3,9 +3,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-
 import { useSession } from '@/src/features/auth/hooks/use-session';
+import { notify } from '@/src/shared/lib/notify';
 import { Button } from '@/src/shared/ui/button';
 import {
   Form,
@@ -37,7 +36,7 @@ export function CategoryForm({ workspaceId, onSuccess }: CategoryFormProps) {
 
   function onSubmit(values: CreateCategoryInput) {
     if (!user) {
-      toast.error('You must be logged in.');
+      notify.error('You must be logged in.');
       return;
     }
     setPending(true);
@@ -49,11 +48,11 @@ export function CategoryForm({ workspaceId, onSuccess }: CategoryFormProps) {
         actorId: user.id,
         actorName: user.name,
       });
-      toast.success('Category created');
+      notify.success('Category created');
       form.reset({ workspaceId, name: '', icon: '', color: '' });
       onSuccess?.();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed');
+      notify.error(error instanceof Error ? error.message : 'Failed');
     } finally {
       setPending(false);
     }

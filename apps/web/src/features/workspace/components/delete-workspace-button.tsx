@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/src/shared/lib/notify';
 
 import { Button } from '@/src/shared/ui/button';
 import {
@@ -29,10 +29,10 @@ export function DeleteWorkspaceButton({ workspace }: { workspace: Workspace }) {
   function handleDelete() {
     try {
       deleteWorkspace({ slug: workspace.slug, confirm });
-      toast.success('Workspace deleted');
+      notify.success('Workspace deleted');
       router.push('/app');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Delete failed');
+      notify.error(error instanceof Error ? error.message : 'Delete failed');
     }
   }
 

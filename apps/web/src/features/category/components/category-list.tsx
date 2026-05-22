@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
-
 import { useSession } from '@/src/features/auth/hooks/use-session';
+import { notify } from '@/src/shared/lib/notify';
 import { Button } from '@/src/shared/ui/button';
 import {
   Dialog,
@@ -110,9 +109,9 @@ function CategoryRow({ category, workspaceId }: { category: Category; workspaceI
                   actorId: user.id,
                   actorName: user.name,
                 });
-                toast.success('Category deleted');
+                notify.success('Category deleted');
               } catch (error) {
-                toast.error(error instanceof Error ? error.message : 'Failed');
+                notify.error(error instanceof Error ? error.message : 'Failed');
               }
             }
           }}

@@ -4,7 +4,46 @@ Reusable UI primitives + composite components. Path alias `@/src/shared/ui/*`.
 
 ---
 
-## Toast (custom)
+## `notify` — default toast helper (sonner wrapper)
+
+**File**: [apps/web/src/shared/lib/notify.ts](../apps/web/src/shared/lib/notify.ts)
+**Use for**: every `success / error / warning / info` toast across the app. Replaces direct `import { toast } from 'sonner'`.
+
+Thin wrapper around sonner that bakes in **per-variant position rules** + keeps the rest of sonner's API (`promise`, `loading`, `dismiss`, `custom`).
+
+### Position rules
+
+| Variant | Position |
+|---|---|
+| `success`, `info`, `message` | `top-right` |
+| `error`, `warning` | `bottom-right` |
+
+### Usage
+
+```tsx
+import { notify } from '@/src/shared/lib/notify';
+
+notify.success('Asset created');          // top-right
+notify.error('Validation failed');         // bottom-right
+notify.warning('Quota almost full');       // bottom-right
+notify.info('Tip: drag to reorder');       // top-right
+
+// pass-through API
+notify.promise(saveAsset(), {
+  loading: 'Saving…',
+  success: 'Saved',
+  error: 'Failed',
+});
+notify.dismiss(id);
+```
+
+The global mount is still [sonner.tsx](../apps/web/src/shared/ui/sonner.tsx) in `app/layout.tsx` — position rules come from per-call options, not from the `<Toaster />`.
+
+> Do **not** import `toast` from `'sonner'` directly in feature code. Always use `notify`.
+
+---
+
+## Toast (custom — imperative ref API)
 
 **File**: [apps/web/src/shared/ui/toast.tsx](../apps/web/src/shared/ui/toast.tsx)
 **Default export**: `CustomToaster` (component) + `ToasterRef` (imperative handle type)

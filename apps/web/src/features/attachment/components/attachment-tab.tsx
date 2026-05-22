@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
-
 import { useSession } from '@/src/features/auth/hooks/use-session';
+import { notify } from '@/src/shared/lib/notify';
 import { Button } from '@/src/shared/ui/button';
 import { EmptyState } from '@/src/shared/ui/empty-state';
 
@@ -35,9 +34,9 @@ export function AttachmentTab({ assetId, workspaceId }: AttachmentTabProps) {
           actorName: user.name,
         });
       }
-      toast.success(`Uploaded ${files.length} file(s)`);
+      notify.success(`Uploaded ${files.length} file(s)`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Upload failed');
+      notify.error(error instanceof Error ? error.message : 'Upload failed');
     } finally {
       setPending(false);
     }
@@ -47,7 +46,7 @@ export function AttachmentTab({ assetId, workspaceId }: AttachmentTabProps) {
     if (!user) return;
     if (!confirm(`Delete "${att.fileName}"?`)) return;
     deleteAttachment({ id: att.id, actorId: user.id, actorName: user.name });
-    toast.success('Attachment deleted');
+    notify.success('Attachment deleted');
   }
 
   return (

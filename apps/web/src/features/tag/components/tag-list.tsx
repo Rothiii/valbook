@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
-
 import { useSession } from '@/src/features/auth/hooks/use-session';
+import { notify } from '@/src/shared/lib/notify';
 import { Badge } from '@/src/shared/ui/badge';
 import { Button } from '@/src/shared/ui/button';
 import {
@@ -39,12 +38,12 @@ export function TagList({ workspaceId }: { workspaceId: string }) {
         actorId: user.id,
         actorName: user.name,
       });
-      toast.success('Tag created');
+      notify.success('Tag created');
       setName('');
       setColor('');
       setOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed');
+      notify.error(error instanceof Error ? error.message : 'Failed');
     }
   }
 
@@ -52,7 +51,7 @@ export function TagList({ workspaceId }: { workspaceId: string }) {
     if (!user) return;
     if (!confirm(`Delete tag "${name}"?`)) return;
     deleteTag({ id, actorId: user.id, actorName: user.name });
-    toast.success('Tag deleted');
+    notify.success('Tag deleted');
   }
 
   return (

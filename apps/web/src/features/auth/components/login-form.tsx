@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { notify } from '@/src/shared/lib/notify';
 
 import { Button } from '@/src/shared/ui/button';
 import {
@@ -34,10 +34,10 @@ export function LoginForm() {
     setPending(true);
     try {
       await login(values);
-      toast.success('Logged in');
+      notify.success('Logged in');
       router.push('/app');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Login failed');
+      notify.error(error instanceof Error ? error.message : 'Login failed');
     } finally {
       setPending(false);
     }

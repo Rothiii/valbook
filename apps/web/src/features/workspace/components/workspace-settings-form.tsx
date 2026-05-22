@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { notify } from '@/src/shared/lib/notify';
 
 import { Button } from '@/src/shared/ui/button';
 import {
@@ -49,13 +49,13 @@ export function WorkspaceSettingsForm({ workspace }: WorkspaceSettingsFormProps)
         newSlug: values.newSlug,
         displayCurrency: values.displayCurrency,
       });
-      toast.success('Workspace updated');
+      notify.success('Workspace updated');
       const nextSlug = values.newSlug ?? workspace.slug;
       if (nextSlug !== workspace.slug) {
         router.push(`/app/w/${nextSlug}/settings`);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Update failed');
+      notify.error(error instanceof Error ? error.message : 'Update failed');
     } finally {
       setPending(false);
     }

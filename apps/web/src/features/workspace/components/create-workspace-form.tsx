@@ -4,10 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-
 import { useSession } from '@/src/features/auth/hooks/use-session';
 import { useCategoryActions } from '@/src/features/category/hooks/use-categories';
+import { notify } from '@/src/shared/lib/notify';
 import { Button } from '@/src/shared/ui/button';
 import {
   Form,
@@ -62,7 +61,7 @@ export function CreateWorkspaceForm() {
 
   function onSubmit(values: CreateWorkspaceInput) {
     if (!user) {
-      toast.error('You must be logged in.');
+      notify.error('You must be logged in.');
       router.push('/login');
       return;
     }
@@ -89,10 +88,10 @@ export function CreateWorkspaceForm() {
           })),
         );
       }
-      toast.success('Workspace created');
+      notify.success('Workspace created');
       router.push(`/app/w/${ws.slug}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create workspace');
+      notify.error(error instanceof Error ? error.message : 'Failed to create workspace');
     } finally {
       setPending(false);
     }

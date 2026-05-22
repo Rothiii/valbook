@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { notify } from '@/src/shared/lib/notify';
 
 import { Button } from '@/src/shared/ui/button';
 import {
@@ -32,9 +32,9 @@ export function ForgotPasswordForm() {
     setPending(true);
     try {
       await forgotPassword(values.email);
-      toast.success('Reset link sent. Check your email.');
+      notify.success('Reset link sent. Check your email.');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send reset email');
+      notify.error(error instanceof Error ? error.message : 'Failed to send reset email');
     } finally {
       setPending(false);
     }

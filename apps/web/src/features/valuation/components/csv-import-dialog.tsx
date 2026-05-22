@@ -2,9 +2,9 @@
 
 import Papa from 'papaparse';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { useAssets } from '@/src/features/asset/hooks/use-assets';
 import { useSession } from '@/src/features/auth/hooks/use-session';
+import { notify } from '@/src/shared/lib/notify';
 import { Button } from '@/src/shared/ui/button';
 import {
   Dialog,
@@ -102,7 +102,7 @@ export function CsvImportDialog({ workspaceId }: CsvImportDialogProps) {
     if (!user) return;
     const validRows = rows.filter((r) => r.status === 'ok');
     if (validRows.length === 0) {
-      toast.error('No valid rows to import');
+      notify.error('No valid rows to import');
       return;
     }
     const { insertedCount } = bulkImport({
@@ -120,7 +120,7 @@ export function CsvImportDialog({ workspaceId }: CsvImportDialogProps) {
       actorId: user.id,
       actorName: user.name,
     });
-    toast.success(`Imported ${insertedCount} valuation entries`);
+    notify.success(`Imported ${insertedCount} valuation entries`);
     setOpen(false);
     setRows([]);
   }

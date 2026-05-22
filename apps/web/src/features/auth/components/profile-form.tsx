@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/src/shared/lib/notify';
 
 import { Button } from '@/src/shared/ui/button';
 import { Input } from '@/src/shared/ui/input';
@@ -21,9 +21,9 @@ export function ProfileForm() {
     event.preventDefault();
     try {
       await updateProfile({ name });
-      toast.success('Profile updated');
+      notify.success('Profile updated');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Update failed');
+      notify.error(error instanceof Error ? error.message : 'Update failed');
     }
   }
 

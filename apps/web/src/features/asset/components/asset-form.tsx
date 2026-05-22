@@ -4,8 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-
 import { useSession } from '@/src/features/auth/hooks/use-session';
 import { DynamicFields } from '@/src/features/category/components/dynamic-fields';
 import { useCategories } from '@/src/features/category/hooks/use-categories';
@@ -13,6 +11,7 @@ import { useCategoryFields } from '@/src/features/category/hooks/use-fields';
 import { useOwnerLabels } from '@/src/features/owner-label/hooks/use-owner-labels';
 import { useAssetTagIds, useTagActions, useTags } from '@/src/features/tag/hooks/use-tags';
 import type { Workspace } from '@/src/features/workspace/types';
+import { notify } from '@/src/shared/lib/notify';
 import { Button } from '@/src/shared/ui/button';
 import {
   Form,
@@ -147,13 +146,13 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
 
   function onSubmit(values: CreateAssetInput) {
     if (!user) {
-      toast.error('You must be logged in.');
+      notify.error('You must be logged in.');
       return;
     }
     const cfErrors = validateCustomFields(values.customFields ?? {});
     setCustomFieldErrors(cfErrors);
     if (Object.keys(cfErrors).length > 0) {
-      toast.error('Custom fields have errors');
+      notify.error('Custom fields have errors');
       return;
     }
     const qty = Number.parseFloat(values.quantity ?? '');
@@ -181,10 +180,10 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
         actorId: user.id,
         actorName: user.name,
       });
-      toast.success(asset ? 'Asset updated' : 'Asset created');
+      notify.success(asset ? 'Asset updated' : 'Asset created');
       router.push(`/app/w/${workspace.slug}/assets/${assetId}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed');
+      notify.error(error instanceof Error ? error.message : 'Failed');
     } finally {
       setPending(false);
     }

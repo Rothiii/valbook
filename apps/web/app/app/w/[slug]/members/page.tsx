@@ -2,8 +2,6 @@
 
 import { notFound } from 'next/navigation';
 import { use } from 'react';
-import { toast } from 'sonner';
-
 import { useSession } from '@/src/features/auth/hooks/use-session';
 import { InviteMemberDialog } from '@/src/features/workspace/components/invite-member-dialog';
 import { useMembershipActions } from '@/src/features/workspace/hooks/use-workspace-actions';
@@ -13,6 +11,7 @@ import {
 } from '@/src/features/workspace/hooks/use-workspace-members';
 import { useWorkspaceBySlug } from '@/src/features/workspace/hooks/use-workspaces';
 import type { WorkspaceRole } from '@/src/features/workspace/types';
+import { notify } from '@/src/shared/lib/notify';
 import { Badge } from '@/src/shared/ui/badge';
 import { Button } from '@/src/shared/ui/button';
 import { PageHeader } from '@/src/shared/ui/page-header';
@@ -49,9 +48,9 @@ export default function MembersPage({ params }: { params: Promise<{ slug: string
     if (!user) return;
     try {
       updateMemberRole({ memberId, role, actorId: user.id, actorName: user.name });
-      toast.success('Role updated');
+      notify.success('Role updated');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed');
+      notify.error(error instanceof Error ? error.message : 'Failed');
     }
   }
 
@@ -60,22 +59,22 @@ export default function MembersPage({ params }: { params: Promise<{ slug: string
     if (!confirm(`Remove ${name}?`)) return;
     try {
       removeMember({ memberId, actorId: user.id, actorName: user.name });
-      toast.success('Member removed');
+      notify.success('Member removed');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed');
+      notify.error(error instanceof Error ? error.message : 'Failed');
     }
   }
 
   function handleRevoke(invitationId: string) {
     if (!user) return;
     revokeInvitation({ invitationId, actorId: user.id, actorName: user.name });
-    toast.success('Invitation revoked');
+    notify.success('Invitation revoked');
   }
 
   function handleResend(invitationId: string) {
     const refreshed = resendInvitation({ invitationId });
     if (refreshed) {
-      toast.success(`New link: /invite/${refreshed.token.slice(0, 12)}…`);
+      notify.success(`New link: /invite/${refreshed.token.slice(0, 12)}…`);
     }
   }
 

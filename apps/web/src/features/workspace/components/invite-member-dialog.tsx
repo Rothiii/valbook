@@ -3,9 +3,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-
 import { useSession } from '@/src/features/auth/hooks/use-session';
+import { notify } from '@/src/shared/lib/notify';
 import { Button } from '@/src/shared/ui/button';
 import {
   Dialog,
@@ -55,11 +54,11 @@ export function InviteMemberDialog({ workspaceId }: { workspaceId: string }) {
         actorId: user.id,
         actorName: user.name,
       });
-      toast.success('Invitation sent');
+      notify.success('Invitation sent');
       setLastToken(invitation.token);
       form.reset({ workspaceId, email: '', role: 'editor', customMessage: '' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed');
+      notify.error(error instanceof Error ? error.message : 'Failed');
     }
   }
 

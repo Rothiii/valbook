@@ -3,9 +3,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-
 import { useSession } from '@/src/features/auth/hooks/use-session';
+import { notify } from '@/src/shared/lib/notify';
 import { Button } from '@/src/shared/ui/button';
 import {
   Form,
@@ -97,7 +96,7 @@ export function FieldManager({ category, workspaceId }: FieldManagerProps) {
         actorId: user.id,
         actorName: user.name,
       });
-      toast.success('Field added');
+      notify.success('Field added');
       form.reset({
         categoryId: category.id,
         key: '',
@@ -107,7 +106,7 @@ export function FieldManager({ category, workspaceId }: FieldManagerProps) {
         options: undefined,
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed');
+      notify.error(error instanceof Error ? error.message : 'Failed');
     } finally {
       setPending(false);
     }
@@ -117,7 +116,7 @@ export function FieldManager({ category, workspaceId }: FieldManagerProps) {
     if (!user) return;
     if (!confirm(`Delete field "${field.label}"?`)) return;
     deleteField({ id: field.id, workspaceId, actorId: user.id, actorName: user.name });
-    toast.success('Field deleted');
+    notify.success('Field deleted');
   }
 
   return (

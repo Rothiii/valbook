@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Geist_Mono } from 'next/font/google';
-import Script from 'next/script';
 
 import { ThemeProvider } from '@/src/shared/lib/theme-provider';
 import { TRPCProvider } from '@/src/shared/lib/trpc-provider';
@@ -28,10 +27,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: theme bootstrap to avoid FOUC
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
-        <Script id="theme-init" strategy="beforeInteractive">
-          {themeInitScript}
-        </Script>
         <ThemeProvider defaultTheme="system">
           <TRPCProvider>{children}</TRPCProvider>
           <Toaster richColors closeButton position="top-right" />

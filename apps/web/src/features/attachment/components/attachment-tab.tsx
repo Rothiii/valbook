@@ -1,13 +1,25 @@
 'use client';
 
+import { Download, Eye, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useSession } from '@/src/features/auth/hooks/use-session';
 import { notify } from '@/src/shared/lib/notify';
 import { Button } from '@/src/shared/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/src/shared/ui/dialog';
 import { EmptyState } from '@/src/shared/ui/empty-state';
 
 import { useAssetAttachments, useAttachmentActions } from '../hooks/use-attachments';
 import type { Attachment } from '../types';
+
+function isPreviewable(mime: string): boolean {
+  return mime.startsWith('image/') || mime === 'application/pdf' || mime.startsWith('text/');
+}
 
 export type AttachmentTabProps = {
   assetId: string;
@@ -77,9 +89,9 @@ export function AttachmentTab({ assetId, workspaceId }: AttachmentTabProps) {
                 <button
                   type="button"
                   onClick={() => setPreview(att)}
-                  className="block h-12 w-12 flex-shrink-0 overflow-hidden border border-border"
+                  className="block h-12 w-12 shrink-0 overflow-hidden border border-border"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {/* biome-ignore lint/performance/noImgElement: data: URL thumbnail, next/image not applicable */}
                   <img
                     src={att.dataUrl}
                     alt={att.fileName}
@@ -87,9 +99,14 @@ export function AttachmentTab({ assetId, workspaceId }: AttachmentTabProps) {
                   />
                 </button>
               ) : (
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center border border-border text-xs text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => isPreviewable(att.mimeType) && setPreview(att)}
+                  disabled={!isPreviewable(att.mimeType)}
+                  className="flex h-12 w-12 shrink-0 items-center justify-center border border-border text-xs text-muted-foreground disabled:cursor-default"
+                >
                   {att.mimeType.includes('pdf') ? 'PDF' : 'FILE'}
-                </div>
+                </button>
               )}
               <div className="flex-1 min-w-0">
                 <p className="truncate">{att.fileName}</p>
@@ -99,13 +116,36 @@ export function AttachmentTab({ assetId, workspaceId }: AttachmentTabProps) {
                 </p>
               </div>
               <div className="flex gap-1">
-                <Button asChild variant="ghost" size="sm">
+                {isPreviewable(att.mimeType) ? (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setPreview(att)}
+                    aria-label="Preview"
+                    className="text-foreground"
+                  >
+                    <Eye />
+                  </Button>
+                ) : null}
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Download"
+                  className="text-foreground"
+                >
                   <a href={att.dataUrl} download={att.fileName}>
-                    Download
+                    <Download />
                   </a>
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleDelete(att)}>
-                  Delete
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => handleDelete(att)}
+                  aria-label="Delete"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20"
+                >
+                  <Trash2 />
                 </Button>
               </div>
             </li>
@@ -113,21 +153,50 @@ export function AttachmentTab({ assetId, workspaceId }: AttachmentTabProps) {
         </ul>
       )}
 
-      {preview ? (
-        <button
-          type="button"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/80 p-6"
-          onClick={() => setPreview(null)}
-          aria-label="Close preview"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={preview.dataUrl}
-            alt={preview.fileName}
-            className="max-h-full max-w-full border border-border bg-background"
-          />
-        </button>
-      ) : null}
+      <Dialog open={!!preview} onOpenChange={(open) => !open && setPreview(null)}>
+        <DialogContent className="h-[85vh] max-w-4xl p-0">
+          {preview ? (
+            <>
+              <DialogHeader className="border-b border-border px-4 py-3">
+                <DialogTitle className="truncate text-sm">{preview.fileName}</DialogTitle>
+                <DialogDescription className="text-xs">
+                  {preview.mimeType} · {formatBytes(preview.sizeBytes)}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-auto bg-muted/30">
+                <PreviewBody attachment={preview} />
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function PreviewBody({ attachment }: { attachment: Attachment }) {
+  if (attachment.mimeType.startsWith('image/')) {
+    return (
+      // biome-ignore lint/performance/noImgElement: data: URL, next/image not applicable
+      <img
+        src={attachment.dataUrl}
+        alt={attachment.fileName}
+        className="mx-auto max-h-full max-w-full object-contain"
+      />
+    );
+  }
+  if (attachment.mimeType === 'application/pdf' || attachment.mimeType.startsWith('text/')) {
+    return (
+      <iframe
+        src={attachment.dataUrl}
+        title={attachment.fileName}
+        className="h-full w-full border-0"
+      />
+    );
+  }
+  return (
+    <div className="flex h-full items-center justify-center p-6 text-sm text-muted-foreground">
+      No inline preview for this file type.
     </div>
   );
 }

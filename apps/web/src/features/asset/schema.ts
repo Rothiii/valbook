@@ -2,10 +2,13 @@ import { z } from 'zod';
 
 export const assetStatusEnum = z.enum(['active', 'archived', 'sold', 'lost', 'disposed']);
 
-const numericString = z
-  .string()
-  .regex(/^\d+(\.\d+)?$/, 'Must be a positive number')
-  .optional();
+const numericString = z.preprocess(
+  (v) => (v === '' || v == null ? undefined : v),
+  z
+    .string()
+    .regex(/^\d+(\.\d+)?$/, 'Must be a positive number')
+    .optional(),
+);
 
 export const createAssetSchema = z.object({
   workspaceId: z.string().min(1),

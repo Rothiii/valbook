@@ -1,5 +1,8 @@
 'use client';
 
+import { useAssetChildren } from '@/src/features/asset/hooks/use-assets';
+import { useAssetAttachments } from '@/src/features/attachment/hooks/use-attachments';
+import { useAssetValuations } from '@/src/features/valuation/hooks/use-valuations';
 import { EmptyState } from '@/src/shared/ui/empty-state';
 
 import { useActivityLogs } from '../hooks/use-activity';
@@ -8,11 +11,19 @@ import type { ActivityLog } from '../types';
 export type ActivityFeedProps = {
   workspaceId: string;
   limit?: number;
+  assetId?: string;
 };
 
-export function ActivityFeed({ workspaceId, limit }: ActivityFeedProps) {
+export function ActivityFeed({ workspaceId, limit, assetId }: ActivityFeedProps) {
   const logs = useActivityLogs(workspaceId);
-  const trimmed = typeof limit === 'number' ? logs.slice(0, limit) : logs;
+  const valuations = useAssetValuations(assetId);
+  const attachments = useAssetAttachments(assetId);
+  const children = useAssetChildren(assetId);
+
+  const filtered = assetId
+    ? logs.filter((l) => belongsToAsset(l, assetId, valuations, attachments, children))
+    : logs;
+  const trimmed = typeof limit === 'number' ? filtered.slice(0, limit) : filtered;
 
   if (trimmed.length === 0) {
     return (
@@ -50,6 +61,25 @@ function ActivityRow({ log }: { log: ActivityLog }) {
       </div>
     </li>
   );
+}
+
+function belongsToAsset(
+  log: ActivityLog,
+  assetId: string,
+  valuations: { id: string }[],
+  attachments: { id: string }[],
+  children: { id: string }[],
+): boolean {
+  if (log.entityType === 'asset') {
+    return log.entityId === assetId || children.some((c) => c.id === log.entityId);
+  }
+  if (log.entityType === 'valuation') {
+    return valuations.some((v) => v.id === log.entityId);
+  }
+  if (log.entityType === 'attachment') {
+    return attachments.some((a) => a.id === log.entityId);
+  }
+  return false;
 }
 
 function actionVerb(action: ActivityLog['action']): string {

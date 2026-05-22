@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ActivityFeed } from '@/src/features/activity/components/activity-feed';
 import { AttachmentTab } from '@/src/features/attachment/components/attachment-tab';
-import { useAssetAttachments } from '@/src/features/attachment/hooks/use-attachments';
 import { useSession } from '@/src/features/auth/hooks/use-session';
 import { useCategory } from '@/src/features/category/hooks/use-categories';
 import { useCategoryFields } from '@/src/features/category/hooks/use-fields';
@@ -36,7 +35,6 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
   const children = useAssetChildren(asset.id);
   const ancestors = useAssetAncestors(asset);
   const workspace = useWorkspaceBySlug(workspaceSlug);
-  const attachments = useAssetAttachments(asset.id);
   const allTags = useTags(asset.workspaceId);
   const assignedTagIds = useAssetTagIds(asset.id);
   const assignedTags = allTags.filter((t) => assignedTagIds.includes(t.id));
@@ -182,15 +180,40 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
         </Card>
       </div>
 
-      <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="valuation">Valuation</TabsTrigger>
-          <TabsTrigger value="attachments">Attachments ({attachments.length})</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="children">Sub-assets ({children.length})</TabsTrigger>
+      <Tabs defaultValue="overview" orientation="vertical">
+        <TabsList className="w-48 shrink-0 gap-1">
+          <TabsTrigger
+            value="overview"
+            className="h-12 py-3 data-active:bg-secondary data-active:text-foreground"
+          >
+            Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="valuation"
+            className="h-12 py-3 data-active:bg-secondary data-active:text-foreground"
+          >
+            Valuation
+          </TabsTrigger>
+          <TabsTrigger
+            value="attachments"
+            className="h-12 py-3 data-active:bg-secondary data-active:text-foreground"
+          >
+            Attachments
+          </TabsTrigger>
+          <TabsTrigger
+            value="activity"
+            className="h-12 py-3 data-active:bg-secondary data-active:text-foreground"
+          >
+            Activity
+          </TabsTrigger>
+          <TabsTrigger
+            value="children"
+            className="h-12 py-3 data-active:bg-secondary data-active:text-foreground"
+          >
+            Sub-assets
+          </TabsTrigger>
         </TabsList>
-        <TabsContent value="overview" className="mt-4 space-y-3">
+        <TabsContent value="overview" className="space-y-3">
           {asset.code ? <DetailRow label="Code" value={asset.code} /> : null}
           {asset.location ? <DetailRow label="Location" value={asset.location} /> : null}
           {fields.length > 0 ? (
@@ -215,20 +238,20 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
             </div>
           ) : null}
         </TabsContent>
-        <TabsContent value="valuation" className="mt-4">
+        <TabsContent value="valuation">
           <ValuationTab
             asset={asset}
             defaultCurrency={workspace?.displayCurrency ?? asset.currentCurrency ?? 'IDR'}
             displayCurrency={workspace?.displayCurrency}
           />
         </TabsContent>
-        <TabsContent value="attachments" className="mt-4">
+        <TabsContent value="attachments">
           <AttachmentTab assetId={asset.id} workspaceId={asset.workspaceId} />
         </TabsContent>
-        <TabsContent value="activity" className="mt-4">
-          <ActivityFeed workspaceId={asset.workspaceId} />
+        <TabsContent value="activity">
+          <ActivityFeed workspaceId={asset.workspaceId} assetId={asset.id} />
         </TabsContent>
-        <TabsContent value="children" className="mt-4">
+        <TabsContent value="children">
           {children.length === 0 ? (
             <p className="text-sm text-muted-foreground">No sub-assets.</p>
           ) : (

@@ -86,14 +86,18 @@ function CategoryRow({ category, workspaceId }: { category: Category; workspaceI
               Fields
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl gap-6 p-8">
             <DialogHeader>
-              <DialogTitle>Fields · {category.name}</DialogTitle>
+              <DialogTitle className="text-lg">Fields · {category.name}</DialogTitle>
               <DialogDescription>
-                Custom data fields rendered when creating an asset in this category.
+                Define the custom data captured for every asset in this category.
               </DialogDescription>
             </DialogHeader>
-            <FieldManager category={category} workspaceId={workspaceId} />
+            <FieldManager
+              category={category}
+              workspaceId={workspaceId}
+              onClose={() => setFieldsOpen(false)}
+            />
           </DialogContent>
         </Dialog>
         <Button

@@ -53,6 +53,9 @@ export const useAssetStore = create<AssetState & AssetActions>()(
           status: input.status ?? 'active',
           location: input.location ?? null,
           notes: input.notes ?? null,
+          quantity: input.quantity ?? null,
+          unitPurchasePrice: input.unitPurchasePrice ?? null,
+          unitCurrentPrice: input.unitCurrentPrice ?? null,
           purchasePrice: input.purchasePrice ?? null,
           purchaseCurrency: input.purchaseCurrency ?? null,
           purchaseDate: input.purchaseDate ?? null,
@@ -96,6 +99,15 @@ export const useAssetStore = create<AssetState & AssetActions>()(
           code: patch.code === undefined ? before.code : (patch.code ?? null),
           location: patch.location === undefined ? before.location : (patch.location ?? null),
           notes: patch.notes === undefined ? before.notes : (patch.notes ?? null),
+          quantity: patch.quantity === undefined ? before.quantity : (patch.quantity ?? null),
+          unitPurchasePrice:
+            patch.unitPurchasePrice === undefined
+              ? before.unitPurchasePrice
+              : (patch.unitPurchasePrice ?? null),
+          unitCurrentPrice:
+            patch.unitCurrentPrice === undefined
+              ? before.unitCurrentPrice
+              : (patch.unitCurrentPrice ?? null),
           purchasePrice:
             patch.purchasePrice === undefined
               ? before.purchasePrice
@@ -216,7 +228,23 @@ export const useAssetStore = create<AssetState & AssetActions>()(
 
       reset: () => set({ assets: [] }),
     }),
-    { name: 'valbook-asset', version: 1 },
+    {
+      name: 'valbook-asset',
+      version: 2,
+      migrate: (persisted: unknown, version: number) => {
+        if (version < 2 && persisted && typeof persisted === 'object' && 'assets' in persisted) {
+          const state = persisted as { assets: Asset[] };
+          state.assets = state.assets.map((a) => ({
+            ...a,
+            quantity: a.quantity ?? null,
+            unitPurchasePrice: a.unitPurchasePrice ?? null,
+            unitCurrentPrice: a.unitCurrentPrice ?? null,
+          }));
+          return state;
+        }
+        return persisted as never;
+      },
+    },
   ),
 );
 

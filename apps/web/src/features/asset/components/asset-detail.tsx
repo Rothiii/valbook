@@ -18,6 +18,7 @@ import { Badge } from '@/src/shared/ui/badge';
 import { Button } from '@/src/shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/shared/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/src/shared/ui/tabs';
+import { formatMoney } from '@/src/shared/utils/format';
 import { useAssetAncestors } from '../hooks/use-asset-tree';
 import { useAssetActions, useAssetChildren } from '../hooks/use-assets';
 import type { Asset } from '../types';
@@ -124,7 +125,6 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
           <Button
             variant="outline"
             onClick={() => router.push(`/app/w/${workspaceSlug}/assets/${asset.id}/edit`)}
-            disabled
           >
             Edit
           </Button>
@@ -145,9 +145,12 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl">
-              {asset.currentValue ? `${asset.currentCurrency ?? ''} ${asset.currentValue}` : '—'}
-            </p>
+            <p className="text-2xl">{formatMoney(asset.currentValue, asset.currentCurrency)}</p>
+            {asset.quantity && asset.unitCurrentPrice ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {asset.quantity} × {formatMoney(asset.unitCurrentPrice, asset.currentCurrency)}
+              </p>
+            ) : null}
           </CardContent>
         </Card>
         <Card>
@@ -157,9 +160,12 @@ export function AssetDetail({ asset, workspaceSlug }: AssetDetailProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl">
-              {asset.purchasePrice ? `${asset.purchaseCurrency ?? ''} ${asset.purchasePrice}` : '—'}
-            </p>
+            <p className="text-2xl">{formatMoney(asset.purchasePrice, asset.purchaseCurrency)}</p>
+            {asset.quantity && asset.unitPurchasePrice ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {asset.quantity} × {formatMoney(asset.unitPurchasePrice, asset.purchaseCurrency)}
+              </p>
+            ) : null}
             {asset.purchaseDate ? (
               <p className="text-xs text-muted-foreground">{asset.purchaseDate}</p>
             ) : null}

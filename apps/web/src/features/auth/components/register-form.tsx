@@ -10,6 +10,7 @@ import { Button } from '@/src/shared/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -81,7 +82,8 @@ export function RegisterForm() {
               <FormControl>
                 <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>
-              <FormMessage>Minimum 8 characters.</FormMessage>
+              <FormDescription>Minimum 8 characters.</FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />

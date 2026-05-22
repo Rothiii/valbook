@@ -32,9 +32,18 @@ import {
 } from '@/src/shared/ui/select';
 import { Textarea } from '@/src/shared/ui/textarea';
 
+import { formatMoney } from '@/src/shared/utils/format';
+
 import { useAssetActions, useAssets } from '../hooks/use-assets';
 import { type CreateAssetInput, createAssetSchema } from '../schema';
 import type { Asset } from '../types';
+
+function multiplyDecimal(a: string | undefined, b: string | undefined): string {
+  const x = Number.parseFloat(a ?? '');
+  const y = Number.parseFloat(b ?? '');
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return '';
+  return (x * y).toString();
+}
 
 export type AssetFormProps = {
   workspace: Workspace;
@@ -66,6 +75,9 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
       status: asset?.status ?? 'active',
       location: asset?.location ?? '',
       notes: asset?.notes ?? '',
+      quantity: asset?.quantity ?? '',
+      unitPurchasePrice: asset?.unitPurchasePrice ?? '',
+      unitCurrentPrice: asset?.unitCurrentPrice ?? '',
       purchasePrice: asset?.purchasePrice ?? '',
       purchaseCurrency: asset?.purchaseCurrency ?? workspace.displayCurrency,
       purchaseDate: asset?.purchaseDate ?? '',
@@ -74,6 +86,13 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
       customFields: asset?.customFields ?? {},
     },
   });
+
+  const watchedQuantity = form.watch('quantity') ?? '';
+  const watchedUnitPurchase = form.watch('unitPurchasePrice') ?? '';
+  const watchedUnitCurrent = form.watch('unitCurrentPrice') ?? '';
+  const computedPurchase = multiplyDecimal(watchedQuantity, watchedUnitPurchase);
+  const computedCurrent = multiplyDecimal(watchedQuantity, watchedUnitCurrent);
+  const hasQuantity = Number.parseFloat(watchedQuantity) > 0;
 
   const watchedCategoryId = form.watch('categoryId') ?? null;
   const watchedCustomFields = form.watch('customFields') ?? {};
@@ -136,6 +155,14 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
     if (Object.keys(cfErrors).length > 0) {
       toast.error('Custom fields have errors');
       return;
+    }
+    const qty = Number.parseFloat(values.quantity ?? '');
+    if (Number.isFinite(qty) && qty > 0) {
+      const purchaseTotal = multiplyDecimal(values.quantity, values.unitPurchasePrice);
+      const currentTotal = multiplyDecimal(values.quantity, values.unitCurrentPrice);
+      if (purchaseTotal) values.purchasePrice = purchaseTotal;
+      if (currentTotal) values.currentValue = currentTotal;
+      else if (purchaseTotal && !values.currentValue) values.currentValue = purchaseTotal;
     }
     setPending(true);
     try {
@@ -298,6 +325,97 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
         </section>
 
         <section className="grid gap-4 border-t border-border pt-6 sm:grid-cols-3">
+          <div className="col-span-full flex items-baseline justify-between gap-2">
+            <h3 className="text-sm uppercase tracking-wider text-muted-foreground">
+              Quantity (optional)
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              For crypto, stock, gold, or any unit-based asset.
+            </p>
+          </div>
+          <FormField
+            control={form.control}
+            name="quantity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Quantity</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    value={field.value ?? ''}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="100, 0.5, …"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="unitPurchasePrice"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Buy price / unit</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    value={field.value ?? ''}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="150, 50000, …"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="unitCurrentPrice"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Current price / unit</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    value={field.value ?? ''}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="180, 55000, …"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {hasQuantity ? (
+            <div className="col-span-full grid gap-1 rounded-lg border border-dashed border-border bg-muted/30 p-3 text-xs sm:grid-cols-2">
+              <div>
+                <span className="text-muted-foreground">Cost basis: </span>
+                <span>
+                  {computedPurchase
+                    ? formatMoney(computedPurchase, form.watch('purchaseCurrency'))
+                    : '—'}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Current value: </span>
+                <span>
+                  {computedCurrent
+                    ? formatMoney(computedCurrent, form.watch('currentCurrency'))
+                    : '—'}
+                </span>
+              </div>
+              <p className="col-span-full text-muted-foreground">
+                Total fields below will be overridden with quantity × unit price on save.
+              </p>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="grid gap-4 border-t border-border pt-6 sm:grid-cols-3">
           <h3 className="col-span-full text-sm uppercase tracking-wider text-muted-foreground">
             Purchase
           </h3>
@@ -306,9 +424,15 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
             name="purchasePrice"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Price</FormLabel>
+                <FormLabel>{hasQuantity ? 'Total cost (auto)' : 'Price'}</FormLabel>
                 <FormControl>
-                  <Input {...field} value={field.value ?? ''} type="text" inputMode="decimal" />
+                  <Input
+                    {...field}
+                    value={hasQuantity ? computedPurchase : (field.value ?? '')}
+                    type="text"
+                    inputMode="decimal"
+                    readOnly={hasQuantity}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -351,9 +475,15 @@ export function AssetForm({ workspace, asset }: AssetFormProps) {
             name="currentValue"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Value</FormLabel>
+                <FormLabel>{hasQuantity ? 'Total value (auto)' : 'Value'}</FormLabel>
                 <FormControl>
-                  <Input {...field} value={field.value ?? ''} type="text" inputMode="decimal" />
+                  <Input
+                    {...field}
+                    value={hasQuantity ? computedCurrent : (field.value ?? '')}
+                    type="text"
+                    inputMode="decimal"
+                    readOnly={hasQuantity}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

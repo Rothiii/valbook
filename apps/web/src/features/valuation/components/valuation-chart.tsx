@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 
 import { useConvert } from '@/src/features/currency/hooks/use-currency';
+import { formatMoney, formatMoneyCompact } from '@/src/shared/utils/format';
 
 import type { ValuationEntry } from '../types';
 
@@ -61,13 +62,22 @@ export function ValuationChart({ entries, displayCurrency }: ValuationChartProps
           <LineChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis dataKey="date" stroke="var(--muted-foreground)" fontSize={11} />
-            <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+            <YAxis
+              stroke="var(--muted-foreground)"
+              fontSize={11}
+              tickFormatter={(v) => formatMoneyCompact(Number(v), data[0]?.currency)}
+              width={70}
+            />
             <Tooltip
               contentStyle={{
                 background: 'var(--popover)',
                 border: '1px solid var(--border)',
                 fontSize: 12,
               }}
+              formatter={(v, _name, item) => [
+                formatMoney(Number(v), item?.payload?.currency),
+                'Value',
+              ]}
             />
             <Line
               type="monotone"

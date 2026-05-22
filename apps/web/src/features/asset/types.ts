@@ -11,6 +11,9 @@ export type Asset = {
   status: AssetStatus;
   location: string | null;
   notes: string | null;
+  quantity: string | null;
+  unitPurchasePrice: string | null;
+  unitCurrentPrice: string | null;
   purchasePrice: string | null;
   purchaseCurrency: string | null;
   purchaseDate: string | null;

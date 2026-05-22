@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/src/shared/ui/table';
+import { formatMoney } from '@/src/shared/utils/format';
 
 import { useAssetValuations, useValuationActions } from '../hooks/use-valuations';
 import { ValuationChart } from './valuation-chart';
@@ -105,9 +106,7 @@ export function ValuationTab({ asset, defaultCurrency, displayCurrency }: Valuat
               {entries.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell>{e.valuedAt}</TableCell>
-                  <TableCell>
-                    {e.currency} {e.value}
-                  </TableCell>
+                  <TableCell>{formatMoney(e.value, e.currency)}</TableCell>
                   <TableCell className="text-muted-foreground">{e.source}</TableCell>
                   <TableCell className="text-muted-foreground">{e.note ?? '—'}</TableCell>
                   <TableCell className="text-right">

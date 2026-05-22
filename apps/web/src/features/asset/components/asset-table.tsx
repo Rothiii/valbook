@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/src/shared/ui/table';
+import { formatMoney } from '@/src/shared/utils/format';
 
 import { useAssets } from '../hooks/use-assets';
 import type { AssetStatus } from '../types';
@@ -272,7 +273,7 @@ export function AssetTable({ workspaceId, workspaceSlug }: AssetTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    {a.currentValue ? `${a.currentCurrency ?? ''} ${a.currentValue}` : '—'}
+                    {formatMoney(a.currentValue, a.currentCurrency)}
                   </TableCell>
                 </TableRow>
               );

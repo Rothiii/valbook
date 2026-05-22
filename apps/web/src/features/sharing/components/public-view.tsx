@@ -7,6 +7,7 @@ import { useCategoryStore } from '@/src/features/category/store';
 import { useOwnerLabelStore } from '@/src/features/owner-label/store';
 import { useWorkspaceStore } from '@/src/features/workspace/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/shared/ui/card';
+import { formatMoney } from '@/src/shared/utils/format';
 
 import { useShareByToken } from '../hooks/use-shares';
 
@@ -111,9 +112,7 @@ function WorkspaceView({
                 {a.ownerLabelId ? ` · ${ownerMap.get(a.ownerLabelId) ?? '—'}` : ''}
               </p>
             </div>
-            <p className="text-sm">
-              {a.currentValue ? `${a.currentCurrency ?? ''} ${a.currentValue}` : '—'}
-            </p>
+            <p className="text-sm">{formatMoney(a.currentValue, a.currentCurrency)}</p>
           </li>
         ))}
       </ul>
@@ -147,9 +146,7 @@ function AssetView({ assetId }: { assetId: string }) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl">
-              {asset.currentValue ? `${asset.currentCurrency ?? ''} ${asset.currentValue}` : '—'}
-            </p>
+            <p className="text-2xl">{formatMoney(asset.currentValue, asset.currentCurrency)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -174,7 +171,7 @@ function AssetView({ assetId }: { assetId: string }) {
               <li key={c.id} className="flex items-center justify-between px-4 py-2 text-sm">
                 <span>{c.name}</span>
                 <span className="text-muted-foreground">
-                  {c.currentValue ? `${c.currentCurrency ?? ''} ${c.currentValue}` : '—'}
+                  {formatMoney(c.currentValue, c.currentCurrency)}
                 </span>
               </li>
             ))}

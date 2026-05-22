@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type * as React from 'react';
 
 import { Button } from '@/src/shared/ui/button';
+import { ThemeToggle } from '@/src/shared/ui/theme-toggle';
 
 export type AppTopbarProps = {
   workspaceSwitcher?: React.ReactNode;
@@ -24,6 +25,7 @@ export function AppTopbar({ workspaceSwitcher, search, actions }: AppTopbarProps
       <div className="flex-1">{search}</div>
       <div className="flex items-center gap-2">
         {actions}
+        <ThemeToggle />
         <Button variant="ghost" size="sm" asChild>
           <Link href="/account">Account</Link>
         </Button>

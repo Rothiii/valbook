@@ -14,6 +14,7 @@ import { useWorkspaceBySlug } from '@/src/features/workspace/hooks/use-workspace
 import { Button } from '@/src/shared/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/shared/ui/card';
 import { PageHeader } from '@/src/shared/ui/page-header';
+import { formatMoney } from '@/src/shared/utils/format';
 
 export default function DashboardPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -64,14 +65,10 @@ export default function DashboardPage({ params }: { params: Promise<{ slug: stri
               <p className="text-2xl">—</p>
             ) : (
               <>
-                <p className="text-2xl">
-                  {display} {convertedTotal.toLocaleString()}
-                </p>
+                <p className="text-2xl">{formatMoney(convertedTotal, display)}</p>
                 <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
                   {totalValueEntries.map(([currency, total]) => (
-                    <li key={currency}>
-                      {currency} {total.toLocaleString()}
-                    </li>
+                    <li key={currency}>{formatMoney(total, currency)}</li>
                   ))}
                 </ul>
                 {unsupported.length > 0 ? (
@@ -111,7 +108,7 @@ export default function DashboardPage({ params }: { params: Promise<{ slug: stri
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {growth.delta >= 0 ? '+' : ''}
-                  {display} {growth.delta.toLocaleString()}
+                  {formatMoney(growth.delta, display)}
                 </p>
               </>
             ) : (

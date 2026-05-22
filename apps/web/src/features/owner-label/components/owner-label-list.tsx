@@ -100,12 +100,22 @@ function CreateOwnerDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="owner-color">Color (hex)</Label>
-            <Input
-              id="owner-color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              placeholder="#737373"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                aria-label="Pick color"
+                value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : '#737373'}
+                onChange={(e) => setColor(e.target.value)}
+                className="h-8 w-10 cursor-pointer rounded-lg border border-input bg-transparent p-0.5"
+              />
+              <Input
+                id="owner-color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                placeholder="#737373"
+                className="flex-1"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>

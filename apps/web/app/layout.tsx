@@ -34,7 +34,7 @@ export default function RootLayout({
         </Script>
         <ThemeProvider defaultTheme="system">
           <TRPCProvider>{children}</TRPCProvider>
-          <Toaster richColors position="top-right" />
+          <Toaster richColors closeButton position="top-right" />
         </ThemeProvider>
       </body>
     </html>

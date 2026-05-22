@@ -125,6 +125,49 @@
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
 }
 
+@layer utilities {
+  [data-sonner-toast] {
+    position: relative;
+    overflow: hidden;
+  }
+
+  [data-sonner-toast]:not([data-type="loading"])::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    width: 100%;
+    transform-origin: left;
+    animation: sonner-progress 4s linear forwards;
+    background: currentColor;
+    opacity: 0.35;
+  }
+
+  [data-sonner-toast][data-type="success"]::after {
+    background: #16a34a;
+  }
+  [data-sonner-toast][data-type="error"]::after {
+    background: var(--destructive);
+  }
+  [data-sonner-toast][data-type="warning"]::after {
+    background: #d97706;
+  }
+  [data-sonner-toast][data-type="info"]::after,
+  [data-sonner-toast][data-type="default"]::after {
+    background: var(--primary);
+  }
+
+  @keyframes sonner-progress {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

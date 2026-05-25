@@ -1,11 +1,13 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { MoreVertical, Share2, SquareCheck, Trash2, X } from 'lucide-react';
+import { LogOut, MoreVertical, Share2, SquareCheck, Trash2, UserPlus, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { useSession } from '@/src/features/auth/hooks/use-session';
 import { notify } from '@/src/shared/lib/notify';
+import { Badge } from '@/src/shared/ui/badge';
 import { Button } from '@/src/shared/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/shared/ui/card';
 import { Checkbox } from '@/src/shared/ui/checkbox';
@@ -19,13 +21,15 @@ import {
 import { EmptyState } from '@/src/shared/ui/empty-state';
 import { cn } from '@/src/shared/utils/cn';
 
-import { useWorkspaceActions } from '../hooks/use-workspace-actions';
+import { useMembershipActions, useWorkspaceActions } from '../hooks/use-workspace-actions';
 import { useWorkspaceMembers } from '../hooks/use-workspace-members';
-import { useWorkspaces } from '../hooks/use-workspaces';
-import type { Workspace } from '../types';
+import { useCurrentMembership, useWorkspaces } from '../hooks/use-workspaces';
+import type { Workspace, WorkspaceRole } from '../types';
+import { InviteMemberDialog } from './invite-member-dialog';
 
 export function WorkspaceList() {
   const workspaces = useWorkspaces();
+  const { user } = useSession();
   const { deleteWorkspace } = useWorkspaceActions();
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -43,7 +47,8 @@ export function WorkspaceList() {
   }
 
   function deleteSelected() {
-    const targets = workspaces.filter((w) => selected.has(w.id));
+    const targets = workspaces.filter((w) => selected.has(w.id) && w.ownerId === user?.id);
+    const skipped = selected.size - targets.length;
     let success = 0;
     for (const ws of targets) {
       try {
@@ -56,6 +61,7 @@ export function WorkspaceList() {
       }
     }
     if (success > 0) notify.success(`${success} workspace deleted`);
+    if (skipped > 0) notify.info(`${skipped} skipped (owner only)`);
     clear();
   }
 
@@ -103,11 +109,28 @@ interface CardProps {
 
 function WorkspaceCard({ workspace, isSelected, selectMode, onToggle }: CardProps) {
   const members = useWorkspaceMembers(workspace.id);
+  const { user } = useSession();
+  const membership = useCurrentMembership(workspace.id);
+  const { leaveWorkspace } = useMembershipActions();
+  const [inviteOpen, setInviteOpen] = useState(false);
 
-  function handleShare() {
+  const role = membership.role;
+  const isOwner = role === 'owner';
+
+  function handleCopyLink() {
     const url = `${window.location.origin}/app/w/${workspace.slug}`;
     navigator.clipboard.writeText(url);
     notify.success('Workspace link copied');
+  }
+
+  function handleLeave() {
+    if (!user) return;
+    try {
+      leaveWorkspace({ workspaceId: workspace.id, userId: user.id, userName: user.name });
+      notify.success('Left workspace');
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Failed');
+    }
   }
 
   const cardBody = (
@@ -118,7 +141,10 @@ function WorkspaceCard({ workspace, isSelected, selectMode, onToggle }: CardProp
       )}
     >
       <CardHeader className="pl-10 pr-10">
-        <CardTitle className="text-base">{workspace.name}</CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base">{workspace.name}</CardTitle>
+          {role ? <RoleBadge role={role} /> : null}
+        </div>
         <CardDescription>
           {members.length} member{members.length === 1 ? '' : 's'} · {workspace.displayCurrency}
         </CardDescription>
@@ -167,25 +193,59 @@ function WorkspaceCard({ workspace, isSelected, selectMode, onToggle }: CardProp
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={handleShare}>
-              <Share2 /> Share
+            <DropdownMenuItem onSelect={handleCopyLink}>
+              <Share2 /> Copy link
             </DropdownMenuItem>
+            {isOwner ? (
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setInviteOpen(true);
+                }}
+              >
+                <UserPlus /> Invite member
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem onSelect={onToggle}>
               <SquareCheck /> Pilih item
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={() => {
-                if (!isSelected) onToggle();
-              }}
-            >
-              <Trash2 /> Hapus
-            </DropdownMenuItem>
+            {isOwner ? (
+              <DropdownMenuItem
+                variant="destructive"
+                onSelect={() => {
+                  if (!isSelected) onToggle();
+                }}
+              >
+                <Trash2 /> Hapus
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem variant="destructive" onSelect={handleLeave}>
+                <LogOut /> Leave workspace
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {isOwner ? (
+        <InviteMemberDialog
+          workspaceId={workspace.id}
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function RoleBadge({ role }: { role: WorkspaceRole }) {
+  const label = role.charAt(0).toUpperCase() + role.slice(1);
+  const variant = role === 'owner' ? 'default' : role === 'editor' ? 'secondary' : 'outline';
+  return (
+    <Badge variant={variant} className="text-[10px] uppercase tracking-wider">
+      {label}
+    </Badge>
   );
 }
 

@@ -1,26 +1,22 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-
+import { AuthGuard } from '@/src/features/auth/components/auth-guard';
 import { EmailVerificationCard } from '@/src/features/auth/components/email-verification-card';
 import { LogoutButton } from '@/src/features/auth/components/logout-button';
 import { ProfileForm } from '@/src/features/auth/components/profile-form';
-import { useSession } from '@/src/features/auth/hooks/use-session';
 import { Button } from '@/src/shared/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/shared/ui/card';
 import { PageHeader } from '@/src/shared/ui/page-header';
 
 export default function AccountPage() {
-  const router = useRouter();
-  const { isAuthenticated } = useSession();
+  return (
+    <AuthGuard>
+      <AccountPageContent />
+    </AuthGuard>
+  );
+}
 
-  useEffect(() => {
-    if (!isAuthenticated) router.push('/login');
-  }, [isAuthenticated, router]);
-
-  if (!isAuthenticated) return null;
-
+function AccountPageContent() {
   return (
     <main className="mx-auto min-h-screen max-w-3xl bg-background px-6 py-8 text-foreground">
       <PageHeader title="Account" description="Manage your profile, security, and sessions." />

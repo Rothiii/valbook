@@ -9,7 +9,10 @@ import {
   useWorkspaceInvitations,
   useWorkspaceMembers,
 } from '@/src/features/workspace/hooks/use-workspace-members';
-import { useWorkspaceBySlug } from '@/src/features/workspace/hooks/use-workspaces';
+import {
+  useCurrentMembership,
+  useWorkspaceBySlug,
+} from '@/src/features/workspace/hooks/use-workspaces';
 import type { WorkspaceRole } from '@/src/features/workspace/types';
 import { notify } from '@/src/shared/lib/notify';
 import { Badge } from '@/src/shared/ui/badge';
@@ -37,6 +40,8 @@ export default function MembersPage({ params }: { params: Promise<{ slug: string
   if (!workspace) notFound();
 
   const { user } = useSession();
+  const membership = useCurrentMembership(workspace.id);
+  const canManage = membership.role === 'owner';
   const members = useWorkspaceMembers(workspace.id);
   const invitations = useWorkspaceInvitations(workspace.id);
   const { updateMemberRole, removeMember, revokeInvitation, resendInvitation } =
@@ -83,7 +88,7 @@ export default function MembersPage({ params }: { params: Promise<{ slug: string
       <PageHeader
         title="Members"
         description="People with access to this workspace."
-        actions={<InviteMemberDialog workspaceId={workspace.id} />}
+        actions={canManage ? <InviteMemberDialog workspaceId={workspace.id} /> : null}
       />
 
       <Table>
@@ -102,8 +107,8 @@ export default function MembersPage({ params }: { params: Promise<{ slug: string
               <TableCell>{m.userName}</TableCell>
               <TableCell className="text-muted-foreground">{m.userEmail}</TableCell>
               <TableCell>
-                {m.role === 'owner' ? (
-                  <Badge>{m.role}</Badge>
+                {m.role === 'owner' || !canManage ? (
+                  <Badge variant={m.role === 'owner' ? 'default' : 'secondary'}>{m.role}</Badge>
                 ) : (
                   <Select
                     value={m.role}
@@ -123,7 +128,7 @@ export default function MembersPage({ params }: { params: Promise<{ slug: string
                 {new Date(m.joinedAt).toLocaleDateString()}
               </TableCell>
               <TableCell className="text-right">
-                {m.role === 'owner' ? (
+                {m.role === 'owner' || !canManage ? (
                   <span className="text-xs text-muted-foreground">—</span>
                 ) : (
                   <Button variant="ghost" size="sm" onClick={() => handleRemove(m.id, m.userName)}>
@@ -158,14 +163,16 @@ export default function MembersPage({ params }: { params: Promise<{ slug: string
                     /invite/{inv.token.slice(0, 12)}…
                   </code>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleResend(inv.id)}>
-                    Resend
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleRevoke(inv.id)}>
-                    Revoke
-                  </Button>
-                </div>
+                {canManage ? (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleResend(inv.id)}>
+                      Resend
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleRevoke(inv.id)}>
+                      Revoke
+                    </Button>
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>

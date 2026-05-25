@@ -35,10 +35,24 @@ import {
 import { useMembershipActions } from '../hooks/use-workspace-actions';
 import { type InviteMemberInput, inviteMemberSchema } from '../schema';
 
-export function InviteMemberDialog({ workspaceId }: { workspaceId: string }) {
+export function InviteMemberDialog({
+  workspaceId,
+  open,
+  onOpenChange,
+}: {
+  workspaceId: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const { user } = useSession();
   const { inviteMember } = useMembershipActions();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = open !== undefined;
+  const dialogOpen = isControlled ? open : internalOpen;
+  const setDialogOpen = (next: boolean) => {
+    if (isControlled) onOpenChange?.(next);
+    else setInternalOpen(next);
+  };
   const [lastToken, setLastToken] = useState<string | null>(null);
 
   const form = useForm<InviteMemberInput>({
@@ -63,10 +77,12 @@ export function InviteMemberDialog({ workspaceId }: { workspaceId: string }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>+ Invite</Button>
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {isControlled ? null : (
+        <DialogTrigger asChild>
+          <Button>+ Invite</Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Invite member</DialogTitle>
@@ -132,7 +148,7 @@ export function InviteMemberDialog({ workspaceId }: { workspaceId: string }) {
               </div>
             ) : null}
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)}>
                 Close
               </Button>
               <Button type="submit">Send invite</Button>

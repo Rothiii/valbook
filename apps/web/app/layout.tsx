@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist_Mono } from 'next/font/google';
 
+import { NavHistoryTracker } from '@/src/shared/lib/nav-history-tracker';
 import { ThemeProvider } from '@/src/shared/lib/theme-provider';
 import { TRPCProvider } from '@/src/shared/lib/trpc-provider';
 import { Toaster } from '@/src/shared/ui/sonner';
@@ -35,6 +36,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider defaultTheme="system">
+          <NavHistoryTracker />
           <TRPCProvider>{children}</TRPCProvider>
           <Toaster richColors closeButton position="top-right" />
         </ThemeProvider>

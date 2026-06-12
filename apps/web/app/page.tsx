@@ -1,5 +1,7 @@
+import { headers } from 'next/headers';
 import Link from 'next/link';
 
+import { auth } from '@/src/server/auth';
 import { Button } from '@/src/shared/ui/button';
 
 const FEATURES = [
@@ -56,11 +58,14 @@ const STEPS = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const authed = !!session;
+
   return (
     <main className="flex flex-1 flex-col bg-background text-foreground">
-      <Nav />
-      <Hero />
+      <Nav authed={authed} />
+      <Hero authed={authed} />
       <Section
         eyebrow="Features"
         title="Yang kamu dapat."
@@ -108,13 +113,13 @@ export default function Home() {
         </div>
       </Section>
 
-      <CtaFooter />
+      <CtaFooter authed={authed} />
       <Footer />
     </main>
   );
 }
 
-function Nav() {
+function Nav({ authed }: { authed: boolean }) {
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
@@ -124,19 +129,27 @@ function Nav() {
           <span className="text-xs text-muted-foreground">Asset workspace</span>
         </Link>
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/login">Login</Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link href="/register">Get started →</Link>
-          </Button>
+          {authed ? (
+            <Button asChild size="sm">
+              <Link href="/app">Go to dashboard →</Link>
+            </Button>
+          ) : (
+            <>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href="/register">Get started →</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </nav>
   );
 }
 
-function Hero() {
+function Hero({ authed }: { authed: boolean }) {
   return (
     <section className="border-b border-border">
       <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 lg:grid-cols-5 lg:py-28">
@@ -157,12 +170,20 @@ function Hero() {
             satu app untuk semua.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link href="/register">Get started free →</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/login">Sign in</Link>
-            </Button>
+            {authed ? (
+              <Button asChild size="lg">
+                <Link href="/app">Go to dashboard →</Link>
+              </Button>
+            ) : (
+              <>
+                <Button asChild size="lg">
+                  <Link href="/register">Get started free →</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link href="/login">Sign in</Link>
+                </Button>
+              </>
+            )}
           </div>
           <p className="mt-6 text-xs text-muted-foreground">
             Free during beta · No credit card · Self-hostable
@@ -267,22 +288,32 @@ function Section({
   );
 }
 
-function CtaFooter() {
+function CtaFooter({ authed }: { authed: boolean }) {
   return (
     <section className="border-b border-border bg-muted">
       <div className="mx-auto max-w-6xl px-6 py-24 text-center">
-        <h2 className="text-3xl md:text-4xl">Mulai sekarang. Gratis.</h2>
+        <h2 className="text-3xl md:text-4xl">
+          {authed ? 'Lanjut kelola asetmu.' : 'Mulai sekarang. Gratis.'}
+        </h2>
         <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
           Buat workspace pertama dalam 30 detik. Pilih template, tambah aset, share ke tim atau
           keluarga.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Button asChild size="lg">
-            <Link href="/register">Get started free →</Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="/login">Sign in</Link>
-          </Button>
+          {authed ? (
+            <Button asChild size="lg">
+              <Link href="/app">Go to dashboard →</Link>
+            </Button>
+          ) : (
+            <>
+              <Button asChild size="lg">
+                <Link href="/register">Get started free →</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/login">Sign in</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </section>
